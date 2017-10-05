@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include "cube.h"
 
 
@@ -36,22 +37,23 @@ struct TIsomorphism {
 };
 
 EColor Char2Color(char ch) {
-    if (ch == 'W')
+    if (ch == 'W' || ch == 'w')
         return C_WHITE;
-    if (ch == 'Y')
+    if (ch == 'Y' || ch == 'y')
         return C_YELLOW;
-    if (ch == 'R')
+    if (ch == 'R' || ch == 'r')
         return C_RED;
-    if (ch == 'O')
+    if (ch == 'O' || ch == 'o')
         return C_ORANGE;
-    if (ch == 'G')
+    if (ch == 'G' || ch == 'g')
         return C_GREEN;
-    if (ch == 'B')
+    if (ch == 'B' || ch == 'b')
         return C_BLUE;
     throw std::logic_error("Unknown color");
 }
 
-TCube MakePuzzle(const std::string &colors) {
+TCube MakePuzzle(std::string colors) {
+    colors.erase(std::remove(colors.begin(), colors.end(), ' '), colors.end());
     std::cout << colors.size() << std::endl;
     TCube cube;
     for (size_t i = 0; i < 48; ++i)
@@ -83,7 +85,11 @@ int main() {
     TCube zero;
     for (size_t i = 0; i < TCube::NUM_FIELDS; ++i)
         zero.SetColor(i, static_cast<EColor>(i / 8));
-    TCube puzzle(MakePuzzle("OWRWGWWYRRORYWRYGOGOYOOGYYWGBYBWBOGGBORRBGBYBBWR"));
+    //TCube puzzle(MakePuzzle("OWRWGWWYRRORYWRYGOGOYOOGYYWGBYBWBOGGBORRBGBYBBWR"));
+    //TCube puzzle(MakePuzzle("YBYYYYOBBROYROWGRWWBGRGWRBGYWRGBOWWBOWROYOBGRGOG"));
+    //TCube puzzle(MakePuzzle("ygbgbbyr yggworrr wwooygyo ywwgoooy wrwbbbbg brgywrro"));
+    //TCube puzzle(MakePuzzle("wrwbgwow ryrbgrwr grgwygog yoybgyry owobgoyo brbywbob"));
+    TCube puzzle(MakePuzzle("yrygbyoy rwrgbryr brbywbob wowgbwrw oyogbowo grgwygog"));
     TG0Homomorphism hom;
     TIsomorphism iso;
     std::vector<TMove> g0 = {TMove::U(), TMove::U() * TMove::U(), TMove::U() * TMove::U() * TMove::U(),
@@ -97,8 +103,10 @@ int main() {
                              TMove::F() * TMove::F(), TMove::B() * TMove::B(),
                              TMove::L() * TMove::L(), TMove::R() * TMove::R()};
     TMove m = Solve(puzzle, zero, g0, hom);
+    std::cout << "First stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
     puzzle = m.Act(puzzle);
     m *= Solve(puzzle, zero, g1, iso);
+    std::cout << "Second stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
     for (auto t : PrintableMoves(m.GetTurns()))
         std::cout << " " << t;
     std::cout << std::endl;

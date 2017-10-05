@@ -7,6 +7,7 @@
 #include <list>
 #include <exception>
 #include <string>
+#include <iostream>
 
 
 enum EColor {
@@ -140,8 +141,10 @@ TMove Solve(const TCube &from, const TCube &to, const std::vector<TMove> &moves,
                     continue;
                 TMove m = curMove * move;
                 auto it = reachedBackward.find(img);
-                if (it != reachedBackward.end())
+                if (it != reachedBackward.end()) {
+                    std::cout << "Found on forward move, fwd=" << reachedForward.size() << ", bwd=" << reachedBackward.size() << std::endl;
                     return m / it->second;
+                }
                 reachedForward[img] = m;
                 queueForward.push_back(c);
             }
@@ -157,8 +160,10 @@ TMove Solve(const TCube &from, const TCube &to, const std::vector<TMove> &moves,
                     continue;
                 TMove m = curMove * move;
                 auto it = reachedForward.find(img);
-                if (it != reachedForward.end())
+                if (it != reachedForward.end()) {
+                    std::cout << "Found on backward move, fwd=" << reachedForward.size() << ", bwd=" << reachedBackward.size() << std::endl;
                     return it->second / m;
+                }
                 reachedBackward[img] = m;
                 queueBackward.push_back(c);
             }
