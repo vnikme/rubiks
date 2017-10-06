@@ -87,7 +87,7 @@ TMove &TMove::operator *= (const TMove &rgt) {
     std::vector<ETurn> turns(std::move(Turns));
     turns.insert(turns.end(), rgt.Turns.begin(), rgt.Turns.end());
     Turns.swap(turns);
-    size_t permutation[NUM_FIELDS];
+    unsigned char permutation[NUM_FIELDS];
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         permutation[i] = rgt.Permutation[Permutation[i]];
     for (size_t i = 0; i < NUM_FIELDS; ++i)
@@ -105,7 +105,7 @@ TMove &TMove::operator /= (const TMove &rgt) {
     }
     turns.insert(turns.end(), Turns.rbegin(), Turns.rend());
     Turns.swap(turns);
-    size_t permutation[NUM_FIELDS], inv[NUM_FIELDS];
+    unsigned char permutation[NUM_FIELDS], inv[NUM_FIELDS];
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         inv[rgt.Permutation[i]] = i;
     for (size_t i = 0; i < NUM_FIELDS; ++i)

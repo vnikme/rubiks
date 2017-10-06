@@ -107,7 +107,7 @@ class TMove {
 
     private:
         std::vector<ETurn> Turns;
-        size_t Permutation[NUM_FIELDS];
+        unsigned char Permutation[NUM_FIELDS];
 };
 TMove operator * (TMove lft, const TMove &rgt);
 TMove operator / (TMove lft, const TMove &rgt);

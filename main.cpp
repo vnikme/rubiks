@@ -87,9 +87,9 @@ int main() {
         zero.SetColor(i, static_cast<EColor>(i / 8));
     //TCube puzzle(MakePuzzle("OWRWGWWYRRORYWRYGOGOYOOGYYWGBYBWBOGGBORRBGBYBBWR"));
     //TCube puzzle(MakePuzzle("YBYYYYOBBROYROWGRWWBGRGWRBGYWRGBOWWBOWROYOBGRGOG"));
-    //TCube puzzle(MakePuzzle("ygbgbbyr yggworrr wwooygyo ywwgoooy wrwbbbbg brgywrro"));
+    TCube puzzle(MakePuzzle("ygbgbbyr yggworrr wwooygyo ywwgoooy wrwbbbbg brgywrro"));
     //TCube puzzle(MakePuzzle("wrwbgwow ryrbgrwr grgwygog yoybgyry owobgoyo brbywbob"));
-    TCube puzzle(MakePuzzle("yrygbyoy rwrgbryr brbywbob wowgbwrw oyogbowo grgwygog"));
+    //TCube puzzle(MakePuzzle("yrygbyoy rwrgbryr brbywbob wowgbwrw oyogbowo grgwygog"));
     TG0Homomorphism hom;
     TIsomorphism iso;
     std::vector<TMove> g0 = {TMove::U(), TMove::U() * TMove::U(), TMove::U() * TMove::U() * TMove::U(),
