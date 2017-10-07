@@ -92,7 +92,8 @@ int main() {
     //TCube puzzle(MakePuzzle("wrwbgwow ryrbgrwr grgwygog yoybgyry owobgoyo brbywbob"));
     //TCube puzzle(MakePuzzle("yrygbyoy rwrgbryr brbywbob wowgbwrw oyogbowo grgwygog"));
     //TCube puzzle(MakePuzzle("oroygoro bobyybgb wbwoywbw rwroorbr gbgwwgrg ygywrygy"));
-    TCube puzzle(MakePuzzle("bwrygwro rbbbbroy gryygggr bggbwboo gwyyroow wwyyrwoo"));
+    //TCube puzzle(MakePuzzle("bwrygwro rbbbbroy gryygggr bggbwboo gwyyroow wwyyrwoo"));
+    TCube puzzle(MakePuzzle("bygyywwb bbwobyby ooogrywr wrywwwrg rorggbyg rgoboorg"));
     //TCube puzzle(zero);
     TG0Homomorphism hom;
     TIsomorphism iso;
@@ -106,14 +107,14 @@ int main() {
                              TMove::D(), TMove::D2(), TMove::D1(),
                              TMove::F2(), TMove::B2(),
                              TMove::L2(), TMove::R2()};
-    std::vector<TMoveChain> candidates = Solve(puzzle, zero, {TMoveChain()}, 1000, g0, hom);
+    std::vector<TMove> candidates = Solve(puzzle, zero, {TMove()}, 1000, g0, hom, iso);
     for (const auto &m : candidates) {
-        std::cout << "First stage moves count: " << PrintableMoves(m.ToMove().GetTurns()).size() << std::endl;
+        std::cout << "First stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
     }
-    candidates = Solve(puzzle, zero, candidates, 1, g1, iso);
+    candidates = Solve(puzzle, zero, candidates, 1, g1, iso, iso);
     for (const auto &m : candidates) {
-        std::cout << "Second stage moves count: " << PrintableMoves(m.ToMove().GetTurns()).size() << std::endl;
-        for (auto t : PrintableMoves(m.ToMove().GetTurns()))
+        std::cout << "Second stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
+        for (auto t : PrintableMoves(m.GetTurns()))
             std::cout << " " << t;
         std::cout << std::endl;
     }

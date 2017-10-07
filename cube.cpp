@@ -260,56 +260,6 @@ TMove &TMove::L1() {
 }
 
 
-TMoveChain::TMoveChain() {
-}
-
-void TMoveChain::AddMove(const TMove &move) {
-    Moves.push_back(move);
-}
-
-TMoveChain &TMoveChain::operator *= (const TMove &rgt) {
-    Moves.back() *= rgt;
-    return *this;
-}
-
-TMoveChain &TMoveChain::operator /= (const TMove &rgt) {
-    Moves.back() /= rgt;
-    return *this;
-}
-
-TMoveChain operator * (TMoveChain lft, const TMove &rgt) {
-    lft *= rgt;
-    return lft;
-}
-
-TMoveChain operator / (TMoveChain lft, const TMove &rgt) {
-    lft /= rgt;
-    return lft;
-}
-
-bool TMoveChain::operator < (const TMoveChain &rgt) const {
-    for (size_t i = 0; i < Moves.size(); ++i) {
-        if (Moves[i] != rgt.Moves[i])
-            return Moves[i] < rgt.Moves[i];
-    }
-    return false;
-}
-
-TMove TMoveChain::ToMove() const {
-    TMove result;
-    for (const TMove &move : Moves)
-        result *= move;
-    return result;
-}
-
-size_t TMoveChain::GetTurnsCount() const {
-    size_t result = 0;
-    for (const TMove &move : Moves)
-        result += move.GetTurnsCount();
-    return result;
-}
-
-
 std::vector<std::string> PrintableMoves(const std::vector<ETurn> &turns) {
     static const char Symbols[] = "FURBDL";
     std::vector<std::string> result;
