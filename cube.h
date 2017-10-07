@@ -4,9 +4,11 @@
 #include <cstddef>
 #include <vector>
 #include <map>
+#include <set>
 #include <list>
 #include <exception>
 #include <string>
+#include <algorithm>
 #include <iostream>
 
 
@@ -93,21 +95,38 @@ class TMove {
         TMove();
         TMove(ETurn id, const size_t permutation[NUM_FIELDS]);
         TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles);    // Construct from independent cycles.
+        TMove CloneAsOneMove() const;
         TMove &operator *= (const TMove &rgt);
         TMove &operator /= (const TMove &rgt);
         TCube Act(const TCube &cube) const;
         const std::vector<ETurn> &GetTurns() const;
+        size_t GetTurnsCount() const;
+        bool operator != (const TMove &rgt) const;
+        bool operator < (const TMove &rgt) const;
 
         static TMove &F();
+        static TMove &F2();
+        static TMove &F1();
         static TMove &U();
+        static TMove &U2();
+        static TMove &U1();
         static TMove &R();
+        static TMove &R2();
+        static TMove &R1();
         static TMove &B();
+        static TMove &B2();
+        static TMove &B1();
         static TMove &D();
+        static TMove &D2();
+        static TMove &D1();
         static TMove &L();
+        static TMove &L2();
+        static TMove &L1();
 
     private:
         std::vector<ETurn> Turns;
         unsigned char Permutation[NUM_FIELDS];
+        size_t TurnsCount = 0;
 };
 TMove operator * (TMove lft, const TMove &rgt);
 TMove operator / (TMove lft, const TMove &rgt);
@@ -116,59 +135,103 @@ TMove operator / (TMove lft, const TMove &rgt);
 std::vector<std::string> PrintableMoves(const std::vector<ETurn> &turns);
 
 
+class TMoveChain {
+    public:
+        TMoveChain();
+        void AddMove(const TMove &move);
+        TMoveChain &operator *= (const TMove &rgt);
+        TMoveChain &operator /= (const TMove &rgt);
+        bool operator < (const TMoveChain &rgt) const;
+        TMove ToMove() const;
+        size_t GetTurnsCount() const;
+
+    private:
+        std::vector<TMove> Moves;
+};
+TMoveChain operator * (TMoveChain lft, const TMove &rgt);
+TMoveChain operator / (TMoveChain lft, const TMove &rgt);
+
+
 template<typename THomomorphism>
-TMove Solve(const TCube &from, const TCube &to, const std::vector<TMove> &moves, const THomomorphism &hom) {
+std::set<TMoveChain> DoSolve(const TCube &from, const TCube &to,
+                             const std::vector<TMoveChain> &doneMoves, size_t candidatesCount,
+                             const std::vector<TMove> &allowedMoves, const THomomorphism &hom) {
     using TCubeImage = typename THomomorphism::TCubeImageType;
-    using TReachMap = std::map<TCubeImage, TMove>;
     using TQueue = std::list<TCube>;
-    if (hom.GetImage(from) == hom.GetImage(to))
-        return TMove();             // The cube is already solved
+    std::set<TMoveChain> result;
     TQueue queueForward, queueBackward;
-    queueForward.push_back(from);
     queueBackward.push_back(to);
-    TReachMap reachedForward, reachedBackward;
-    reachedForward[hom.GetImage(from)] = TMove();
+    std::map<TCubeImage, TMoveChain> reachedForward;
+    std::map<TCubeImage, TMove> reachedBackward;
     reachedBackward[hom.GetImage(to)] = TMove();
-    while (!queueForward.empty() || !queueBackward.empty()) {
+    for (size_t i = 0; i < doneMoves.size() || !queueForward.empty() || !queueBackward.empty(); ) {
+        std::cout << i << " " << result.size() << " " << queueForward.size() << " " << queueBackward.size() << " " << reachedForward.size() << " " << reachedBackward.size() << std::endl;
+        for (; i < doneMoves.size() && (queueForward.empty() ||
+               doneMoves[i].GetTurnsCount() <= reachedForward[hom.GetImage(queueForward.front())].GetTurnsCount());
+               ++i)
+        {
+            TCube c = doneMoves[i].ToMove().Act(from);
+            TMoveChain chain(doneMoves[i]);
+            chain.AddMove(TMove());
+            if (hom.GetImage(c) == hom.GetImage(to)) {
+                result.insert(chain);
+                if (result.size() >= candidatesCount)
+                    return result;
+            }
+            queueForward.push_front(c);
+            reachedForward[hom.GetImage(c)] = chain;
+        }
         if (!queueForward.empty()) {
             TCube cur = queueForward.front();
             queueForward.pop_front();
-            const TMove &curMove = reachedForward[hom.GetImage(cur)];
-            for (const auto &move : moves) {
+            const TMoveChain &curMove = reachedForward[hom.GetImage(cur)];
+            for (const auto &move : allowedMoves) {
                 TCube c = move.Act(cur);
                 TCubeImage img = hom.GetImage(c);
                 if (reachedForward.find(img) != reachedForward.end())
                     continue;
-                TMove m = curMove * move;
-                auto it = reachedBackward.find(img);
-                if (it != reachedBackward.end()) {
-                    std::cout << "Found on forward move, fwd=" << reachedForward.size() << ", bwd=" << reachedBackward.size() << std::endl;
-                    return m / it->second;
-                }
+                TMoveChain m = curMove * move;
                 reachedForward[img] = m;
                 queueForward.push_back(c);
+                auto it = reachedBackward.find(img);
+                if (it != reachedBackward.end()) {
+                    result.insert(m / it->second);
+                    if (result.size() >= candidatesCount)
+                        return result;
+                }
             }
         }
         if (!queueBackward.empty()) {
             TCube cur = queueBackward.front();
             queueBackward.pop_front();
             const TMove &curMove = reachedBackward[hom.GetImage(cur)];
-            for (const auto &move : moves) {
+            for (const auto &move : allowedMoves) {
                 TCube c = move.Act(cur);
                 TCubeImage img = hom.GetImage(c);
                 if (reachedBackward.find(img) != reachedBackward.end())
                     continue;
                 TMove m = curMove * move;
-                auto it = reachedForward.find(img);
-                if (it != reachedForward.end()) {
-                    std::cout << "Found on backward move, fwd=" << reachedForward.size() << ", bwd=" << reachedBackward.size() << std::endl;
-                    return it->second / m;
-                }
                 reachedBackward[img] = m;
                 queueBackward.push_back(c);
+                auto it = reachedForward.find(img);
+                if (it != reachedForward.end()) {
+                    result.insert(it->second / m);
+                    if (result.size() >= candidatesCount)
+                        return result;
+                }
             }
         }
     }
     throw std::logic_error("Unsolvable cube!");
+}
+
+template<typename THomomorphism>
+std::vector<TMoveChain> Solve(const TCube &from, const TCube &to, const std::vector<TMoveChain> &doneMoves, size_t candidatesCount, const std::vector<TMove> &allowedMoves, const THomomorphism &hom) {
+    auto solution = DoSolve(from, to, doneMoves, candidatesCount, allowedMoves, hom);
+    std::vector<TMoveChain> result(solution.begin(), solution.end());
+    std::sort(result.begin(), result.end(), [] (const TMoveChain &a, const TMoveChain &b) {
+        return a.GetTurnsCount() < b.GetTurnsCount();
+    });
+    return result;
 }
 

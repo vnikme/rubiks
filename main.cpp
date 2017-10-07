@@ -85,31 +85,38 @@ int main() {
     TCube zero;
     for (size_t i = 0; i < TCube::NUM_FIELDS; ++i)
         zero.SetColor(i, static_cast<EColor>(i / 8));
+    //TCube puzzle(MakePuzzle("ooyorwyb gobbwyyg rrrboobb rywgwwby bgywywro owgrgggr"));
     //TCube puzzle(MakePuzzle("OWRWGWWYRRORYWRYGOGOYOOGYYWGBYBWBOGGBORRBGBYBBWR"));
     //TCube puzzle(MakePuzzle("YBYYYYOBBROYROWGRWWBGRGWRBGYWRGBOWWBOWROYOBGRGOG"));
-    TCube puzzle(MakePuzzle("ygbgbbyr yggworrr wwooygyo ywwgoooy wrwbbbbg brgywrro"));
+    //TCube puzzle(MakePuzzle("ygbgbbyr yggworrr wwooygyo ywwgoooy wrwbbbbg brgywrro"));
     //TCube puzzle(MakePuzzle("wrwbgwow ryrbgrwr grgwygog yoybgyry owobgoyo brbywbob"));
     //TCube puzzle(MakePuzzle("yrygbyoy rwrgbryr brbywbob wowgbwrw oyogbowo grgwygog"));
+    //TCube puzzle(MakePuzzle("oroygoro bobyybgb wbwoywbw rwroorbr gbgwwgrg ygywrygy"));
+    TCube puzzle(MakePuzzle("bwrygwro rbbbbroy gryygggr bggbwboo gwyyroow wwyyrwoo"));
+    //TCube puzzle(zero);
     TG0Homomorphism hom;
     TIsomorphism iso;
-    std::vector<TMove> g0 = {TMove::U(), TMove::U() * TMove::U(), TMove::U() * TMove::U() * TMove::U(),
-                             TMove::D(), TMove::D() * TMove::D(), TMove::D() * TMove::D() * TMove::D(),
-                             TMove::F(), TMove::F() * TMove::F(), TMove::F() * TMove::F() * TMove::F(),
-                             TMove::B(), TMove::B() * TMove::B(), TMove::B() * TMove::B() * TMove::B(),
-                             TMove::L(), TMove::L() * TMove::L(), TMove::L() * TMove::L() * TMove::L(),
-                             TMove::R(), TMove::R() * TMove::R(), TMove::R() * TMove::R() * TMove::R()};
-    std::vector<TMove> g1 = {TMove::U(), TMove::U() * TMove::U(), TMove::U() * TMove::U() * TMove::U(),
-                             TMove::D(), TMove::D() * TMove::D(), TMove::D() * TMove::D() * TMove::D(),
-                             TMove::F() * TMove::F(), TMove::B() * TMove::B(),
-                             TMove::L() * TMove::L(), TMove::R() * TMove::R()};
-    TMove m = Solve(puzzle, zero, g0, hom);
-    std::cout << "First stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
-    puzzle = m.Act(puzzle);
-    m *= Solve(puzzle, zero, g1, iso);
-    std::cout << "Second stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
-    for (auto t : PrintableMoves(m.GetTurns()))
-        std::cout << " " << t;
-    std::cout << std::endl;
+    std::vector<TMove> g0 = {TMove::U(), TMove::U2(), TMove::U1(),
+                             TMove::D(), TMove::D2(), TMove::D1(),
+                             TMove::F(), TMove::F2(), TMove::F1(),
+                             TMove::B(), TMove::B2(), TMove::B1(),
+                             TMove::L(), TMove::L2(), TMove::L1(),
+                             TMove::R(), TMove::R2(), TMove::R1()};
+    std::vector<TMove> g1 = {TMove::U(), TMove::U2(), TMove::U1(),
+                             TMove::D(), TMove::D2(), TMove::D1(),
+                             TMove::F2(), TMove::B2(),
+                             TMove::L2(), TMove::R2()};
+    std::vector<TMoveChain> candidates = Solve(puzzle, zero, {TMoveChain()}, 1000, g0, hom);
+    for (const auto &m : candidates) {
+        std::cout << "First stage moves count: " << PrintableMoves(m.ToMove().GetTurns()).size() << std::endl;
+    }
+    candidates = Solve(puzzle, zero, candidates, 1, g1, iso);
+    for (const auto &m : candidates) {
+        std::cout << "Second stage moves count: " << PrintableMoves(m.ToMove().GetTurns()).size() << std::endl;
+        for (auto t : PrintableMoves(m.ToMove().GetTurns()))
+            std::cout << " " << t;
+        std::cout << std::endl;
+    }
     return 0;
 }
 

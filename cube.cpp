@@ -68,6 +68,7 @@ TMove::TMove(ETurn id, const size_t permutation[NUM_FIELDS]) {
     Turns.push_back(id);
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = permutation[i];
+    TurnsCount = 1;
 }
 
 TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles) {
@@ -81,6 +82,13 @@ TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles) {
             Permutation[from] = to;
         }
     }
+    TurnsCount = 1;
+}
+
+TMove TMove::CloneAsOneMove() const {
+    TMove result(*this);
+    result.TurnsCount = 1;
+    return result;
 }
 
 TMove &TMove::operator *= (const TMove &rgt) {
@@ -92,6 +100,7 @@ TMove &TMove::operator *= (const TMove &rgt) {
         permutation[i] = rgt.Permutation[Permutation[i]];
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = permutation[i];
+    TurnsCount += rgt.TurnsCount;
     return *this;
 }
 
@@ -112,6 +121,7 @@ TMove &TMove::operator /= (const TMove &rgt) {
         permutation[i] = inv[Permutation[i]];
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = permutation[i];
+    TurnsCount += rgt.TurnsCount;
     return *this;
 }
 
@@ -138,35 +148,165 @@ const std::vector<ETurn> &TMove::GetTurns() const {
     return Turns;
 }
 
+size_t TMove::GetTurnsCount() const {
+    return TurnsCount;
+}
+
+bool TMove::operator != (const TMove &rgt) const {
+    for (size_t i = 0; i < NUM_FIELDS; ++i) {
+        if (Permutation[i] != rgt.Permutation[i])
+            return true;
+    }
+    return false;
+}
+
+bool TMove::operator < (const TMove &rgt) const {
+    for (size_t i = 0; i < NUM_FIELDS; ++i) {
+        if (Permutation[i] != rgt.Permutation[i])
+            return Permutation[i] < rgt.Permutation[i];
+    }
+    return false;
+}
+
 TMove &TMove::F() {
     static TMove FMove(T_FRONT, {{0, 2, 7, 5}, {1, 4, 6, 3}, {13, 16, 34, 47}, {14, 19, 33, 44}, {15, 21, 32, 42}});
     return FMove;
 }
 
+TMove &TMove::F2() {
+    static TMove F2Move((F() * F()).CloneAsOneMove());
+    return F2Move;
+}
+
+TMove &TMove::F1() {
+    static TMove F1Move((F() * F() * F()).CloneAsOneMove());
+    return F1Move;
+}
+
 TMove &TMove::U() {
-    static TMove FMove(T_UP, {{8, 10, 15, 13}, {9, 12, 14, 11}, {29, 18, 2, 42}, {30, 17, 1, 41}, {31, 16, 0, 40}});
-    return FMove;
+    static TMove UMove(T_UP, {{8, 10, 15, 13}, {9, 12, 14, 11}, {29, 18, 2, 42}, {30, 17, 1, 41}, {31, 16, 0, 40}});
+    return UMove;
+}
+
+TMove &TMove::U2() {
+    static TMove U2Move((U() * U()).CloneAsOneMove());
+    return U2Move;
+}
+
+TMove &TMove::U1() {
+    static TMove U1Move((U() * U() * U()).CloneAsOneMove());
+    return U1Move;
 }
 
 TMove &TMove::R() {
-    static TMove FMove(T_RIGHT, {{16, 18, 23, 21}, {17, 20, 22, 19}, {15, 31, 39, 7}, {12, 28, 36, 4}, {10, 26, 34, 2}});
-    return FMove;
+    static TMove RMove(T_RIGHT, {{16, 18, 23, 21}, {17, 20, 22, 19}, {15, 31, 39, 7}, {12, 28, 36, 4}, {10, 26, 34, 2}});
+    return RMove;
+}
+
+TMove &TMove::R2() {
+    static TMove R2Move((R() * R()).CloneAsOneMove());
+    return R2Move;
+}
+
+TMove &TMove::R1() {
+    static TMove R1Move((R() * R() * R()).CloneAsOneMove());
+    return R1Move;
 }
 
 TMove &TMove::B() {
-    static TMove FMove(T_BACK, {{29, 24, 26, 31}, {27, 25, 28, 30}, {8, 45, 39, 18}, {9, 43, 38, 20}, {10, 40, 37, 23}});
-    return FMove;
+    static TMove BMove(T_BACK, {{29, 24, 26, 31}, {27, 25, 28, 30}, {8, 45, 39, 18}, {9, 43, 38, 20}, {10, 40, 37, 23}});
+    return BMove;
+}
+
+TMove &TMove::B2() {
+    static TMove B2Move((B() * B()).CloneAsOneMove());
+    return B2Move;
+}
+
+TMove &TMove::B1() {
+    static TMove B1Move((B() * B() * B()).CloneAsOneMove());
+    return B1Move;
 }
 
 TMove &TMove::D() {
-    static TMove FMove(T_DOWN, {{32, 34, 39, 37}, {33, 36, 38, 35}, {5, 21, 26, 45}, {6, 22, 25, 46}, {7, 23, 24, 47}});
-    return FMove;
+    static TMove DMove(T_DOWN, {{32, 34, 39, 37}, {33, 36, 38, 35}, {5, 21, 26, 45}, {6, 22, 25, 46}, {7, 23, 24, 47}});
+    return DMove;
+}
+
+TMove &TMove::D2() {
+    static TMove D2Move((D() * D()).CloneAsOneMove());
+    return D2Move;
+}
+
+TMove &TMove::D1() {
+    static TMove D1Move((D() * D() * D()).CloneAsOneMove());
+    return D1Move;
 }
 
 TMove &TMove::L() {
-    static TMove FMove(T_LEFT, {{40, 42, 47, 45}, {41, 44, 46, 43}, {8, 0, 32, 24}, {11, 3, 35, 27}, {13, 5, 37, 29}});
-    return FMove;
+    static TMove LMove(T_LEFT, {{40, 42, 47, 45}, {41, 44, 46, 43}, {8, 0, 32, 24}, {11, 3, 35, 27}, {13, 5, 37, 29}});
+    return LMove;
 
+}
+
+TMove &TMove::L2() {
+    static TMove L2Move((L() * L()).CloneAsOneMove());
+    return L2Move;
+}
+
+TMove &TMove::L1() {
+    static TMove L1Move((L() * L() * L()).CloneAsOneMove());
+    return L1Move;
+}
+
+
+TMoveChain::TMoveChain() {
+}
+
+void TMoveChain::AddMove(const TMove &move) {
+    Moves.push_back(move);
+}
+
+TMoveChain &TMoveChain::operator *= (const TMove &rgt) {
+    Moves.back() *= rgt;
+    return *this;
+}
+
+TMoveChain &TMoveChain::operator /= (const TMove &rgt) {
+    Moves.back() /= rgt;
+    return *this;
+}
+
+TMoveChain operator * (TMoveChain lft, const TMove &rgt) {
+    lft *= rgt;
+    return lft;
+}
+
+TMoveChain operator / (TMoveChain lft, const TMove &rgt) {
+    lft /= rgt;
+    return lft;
+}
+
+bool TMoveChain::operator < (const TMoveChain &rgt) const {
+    for (size_t i = 0; i < Moves.size(); ++i) {
+        if (Moves[i] != rgt.Moves[i])
+            return Moves[i] < rgt.Moves[i];
+    }
+    return false;
+}
+
+TMove TMoveChain::ToMove() const {
+    TMove result;
+    for (const TMove &move : Moves)
+        result *= move;
+    return result;
+}
+
+size_t TMoveChain::GetTurnsCount() const {
+    size_t result = 0;
+    for (const TMove &move : Moves)
+        result += move.GetTurnsCount();
+    return result;
 }
 
 
