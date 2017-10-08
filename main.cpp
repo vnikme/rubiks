@@ -93,29 +93,28 @@ int main() {
     //TCube puzzle(MakePuzzle("yrygbyoy rwrgbryr brbywbob wowgbwrw oyogbowo grgwygog"));
     //TCube puzzle(MakePuzzle("oroygoro bobyybgb wbwoywbw rwroorbr gbgwwgrg ygywrygy"));
     //TCube puzzle(MakePuzzle("bwrygwro rbbbbroy gryygggr bggbwboo gwyyroow wwyyrwoo"));
-    TCube puzzle(MakePuzzle("bygyywwb bbwobyby ooogrywr wrywwwrg rorggbyg rgoboorg"));
+    //TCube puzzle(MakePuzzle("bygyywwb bbwobyby ooogrywr wrywwwrg rorggbyg rgoboorg"));
+    //TCube puzzle(MakePuzzle("bwrygywr wgwbywby gogyrbww oboygoor boyrgyrb gorrbgwo"));
+    //TCube puzzle(MakePuzzle("ybywoggr rbbryowr bgwyrgbg orogygor ywwbrwgw ywboobyo"));
+    TCube puzzle(MakePuzzle("rbobrgoo oyrobyrg ywwwgygr rywgwwrg oybyrggb bwbooybw"));
     //TCube puzzle(zero);
     TG0Homomorphism hom;
     TIsomorphism iso;
-    std::vector<TMove> g0 = {TMove::U(), TMove::U2(), TMove::U1(),
-                             TMove::D(), TMove::D2(), TMove::D1(),
-                             TMove::F(), TMove::F2(), TMove::F1(),
-                             TMove::B(), TMove::B2(), TMove::B1(),
-                             TMove::L(), TMove::L2(), TMove::L1(),
-                             TMove::R(), TMove::R2(), TMove::R1()};
-    std::vector<TMove> g1 = {TMove::U(), TMove::U2(), TMove::U1(),
-                             TMove::D(), TMove::D2(), TMove::D1(),
-                             TMove::F2(), TMove::B2(),
-                             TMove::L2(), TMove::R2()};
-    std::vector<TMove> candidates = Solve(puzzle, zero, {TMove()}, 1000, g0, hom, iso);
+    std::vector<TMove> g0, g1;
+    for (size_t i = 0; i < TE_G0_COUNT; ++i)
+        g0.push_back(TurnExt2Move(static_cast<ETurnExt>(i)));
+    for (size_t i = 0; i < TE_G1_COUNT; ++i)
+        g1.push_back(TurnExt2Move(static_cast<ETurnExt>(i)));
+    std::vector<TMove> candidates = Solve(puzzle, zero, {TMove()}, 1000, 3000000, g0, hom, iso);
+    //for (const auto &m : candidates) {
+    //    std::cout << "First stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
+    //}
+    candidates = Solve(puzzle, zero, candidates, 1, 3000000, g1, iso, iso);
     for (const auto &m : candidates) {
-        std::cout << "First stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
-    }
-    candidates = Solve(puzzle, zero, candidates, 1, g1, iso, iso);
-    for (const auto &m : candidates) {
-        std::cout << "Second stage moves count: " << PrintableMoves(m.GetTurns()).size() << std::endl;
-        for (auto t : PrintableMoves(m.GetTurns()))
-            std::cout << " " << t;
+        auto turns = Turns2Ext(m.GetTurns());
+        std::cout << "Second stage moves count: " << turns.size() << " " << m.GetTurnsCount() << " " << m.GetTurns().size() << std::endl;
+        for (auto t : turns)
+            std::cout << " " << TurnExt2String(t);
         std::cout << std::endl;
     }
     return 0;

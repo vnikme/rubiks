@@ -168,101 +168,68 @@ bool TMove::operator < (const TMove &rgt) const {
     return false;
 }
 
-TMove &TMove::F() {
-    static TMove FMove(T_FRONT, {{0, 2, 7, 5}, {1, 4, 6, 3}, {13, 16, 34, 47}, {14, 19, 33, 44}, {15, 21, 32, 42}});
-    return FMove;
+static std::vector<TMove> CreateAllMoves() {
+    std::vector<TMove> moves;
+    moves.reserve(TE_G0_COUNT);
+    TMove f(T_FRONT, {{0, 2, 7, 5}, {1, 4, 6, 3}, {13, 16, 34, 47}, {14, 19, 33, 44}, {15, 21, 32, 42}});
+    TMove u(T_UP, {{8, 10, 15, 13}, {9, 12, 14, 11}, {29, 18, 2, 42}, {30, 17, 1, 41}, {31, 16, 0, 40}});
+    TMove r(T_RIGHT, {{16, 18, 23, 21}, {17, 20, 22, 19}, {15, 31, 39, 7}, {12, 28, 36, 4}, {10, 26, 34, 2}});
+    TMove b(T_BACK, {{29, 24, 26, 31}, {27, 25, 28, 30}, {8, 45, 39, 18}, {9, 43, 38, 20}, {10, 40, 37, 23}});
+    TMove d(T_DOWN, {{32, 34, 39, 37}, {33, 36, 38, 35}, {5, 21, 26, 45}, {6, 22, 25, 46}, {7, 23, 24, 47}});
+    TMove l(T_LEFT, {{40, 42, 47, 45}, {41, 44, 46, 43}, {8, 0, 32, 24}, {11, 3, 35, 27}, {13, 5, 37, 29}});
+    moves.push_back(u);
+    moves.push_back((u * u).CloneAsOneMove());
+    moves.push_back((u * u * u).CloneAsOneMove());
+    moves.push_back(d);
+    moves.push_back((d * d).CloneAsOneMove());
+    moves.push_back((d * d * d).CloneAsOneMove());
+    moves.push_back((l * l).CloneAsOneMove());
+    moves.push_back((r * r).CloneAsOneMove());
+    moves.push_back((f * f).CloneAsOneMove());
+    moves.push_back((b * b).CloneAsOneMove());
+    moves.push_back(l);
+    moves.push_back((l * l * l).CloneAsOneMove());
+    moves.push_back(r);
+    moves.push_back((r * r * r).CloneAsOneMove());
+    moves.push_back(f);
+    moves.push_back((f * f * f).CloneAsOneMove());
+    moves.push_back(b);
+    moves.push_back((b * b * b).CloneAsOneMove());
+    return moves;
 }
 
-TMove &TMove::F2() {
-    static TMove F2Move((F() * F()).CloneAsOneMove());
-    return F2Move;
+const TMove &TurnExt2Move(ETurnExt turn) {
+    static std::vector<TMove> Moves(CreateAllMoves());
+    if (turn < 0 || turn >= Moves.size())
+        throw std::logic_error("Turn is out of bounds.");
+    return Moves[turn];
 }
 
-TMove &TMove::F1() {
-    static TMove F1Move((F() * F() * F()).CloneAsOneMove());
-    return F1Move;
+std::string TurnExt2String(ETurnExt turn) {
+    static std::string Ids[] = { "U", "U2", "U'", "D", "D2", "D'", "L2", "R2", "F2", "B2", "L", "L'", "R", "R'", "F", "F'", "B", "B'" };
+    if (turn < 0 || turn >= sizeof(Ids) / sizeof(*Ids))
+        throw std::logic_error("Turn is out of bounds.");
+    return Ids[turn];
 }
 
-TMove &TMove::U() {
-    static TMove UMove(T_UP, {{8, 10, 15, 13}, {9, 12, 14, 11}, {29, 18, 2, 42}, {30, 17, 1, 41}, {31, 16, 0, 40}});
-    return UMove;
+static ETurnExt Turn2Ext(ETurn turn, size_t count) {
+    if (turn == T_UP)
+        return static_cast<ETurnExt>(TE_U + count - 1);
+    if (turn == T_DOWN)
+        return static_cast<ETurnExt>(TE_D + count - 1);
+    if (turn == T_LEFT)
+        return static_cast<ETurnExt>(count == 2 ? TE_L2 : count == 1 ? TE_L : TE_L1);
+    if (turn == T_RIGHT)
+        return static_cast<ETurnExt>(count == 2 ? TE_R2 : count == 1 ? TE_R : TE_R1);
+    if (turn == T_FRONT)
+        return static_cast<ETurnExt>(count == 2 ? TE_F2 : count == 1 ? TE_F : TE_F1);
+    if (turn == T_BACK)
+        return static_cast<ETurnExt>(count == 2 ? TE_B2 : count == 1 ? TE_B : TE_B1);
+    throw std::logic_error("Undefined turn id.");
 }
 
-TMove &TMove::U2() {
-    static TMove U2Move((U() * U()).CloneAsOneMove());
-    return U2Move;
-}
-
-TMove &TMove::U1() {
-    static TMove U1Move((U() * U() * U()).CloneAsOneMove());
-    return U1Move;
-}
-
-TMove &TMove::R() {
-    static TMove RMove(T_RIGHT, {{16, 18, 23, 21}, {17, 20, 22, 19}, {15, 31, 39, 7}, {12, 28, 36, 4}, {10, 26, 34, 2}});
-    return RMove;
-}
-
-TMove &TMove::R2() {
-    static TMove R2Move((R() * R()).CloneAsOneMove());
-    return R2Move;
-}
-
-TMove &TMove::R1() {
-    static TMove R1Move((R() * R() * R()).CloneAsOneMove());
-    return R1Move;
-}
-
-TMove &TMove::B() {
-    static TMove BMove(T_BACK, {{29, 24, 26, 31}, {27, 25, 28, 30}, {8, 45, 39, 18}, {9, 43, 38, 20}, {10, 40, 37, 23}});
-    return BMove;
-}
-
-TMove &TMove::B2() {
-    static TMove B2Move((B() * B()).CloneAsOneMove());
-    return B2Move;
-}
-
-TMove &TMove::B1() {
-    static TMove B1Move((B() * B() * B()).CloneAsOneMove());
-    return B1Move;
-}
-
-TMove &TMove::D() {
-    static TMove DMove(T_DOWN, {{32, 34, 39, 37}, {33, 36, 38, 35}, {5, 21, 26, 45}, {6, 22, 25, 46}, {7, 23, 24, 47}});
-    return DMove;
-}
-
-TMove &TMove::D2() {
-    static TMove D2Move((D() * D()).CloneAsOneMove());
-    return D2Move;
-}
-
-TMove &TMove::D1() {
-    static TMove D1Move((D() * D() * D()).CloneAsOneMove());
-    return D1Move;
-}
-
-TMove &TMove::L() {
-    static TMove LMove(T_LEFT, {{40, 42, 47, 45}, {41, 44, 46, 43}, {8, 0, 32, 24}, {11, 3, 35, 27}, {13, 5, 37, 29}});
-    return LMove;
-
-}
-
-TMove &TMove::L2() {
-    static TMove L2Move((L() * L()).CloneAsOneMove());
-    return L2Move;
-}
-
-TMove &TMove::L1() {
-    static TMove L1Move((L() * L() * L()).CloneAsOneMove());
-    return L1Move;
-}
-
-
-std::vector<std::string> PrintableMoves(const std::vector<ETurn> &turns) {
-    static const char Symbols[] = "FURBDL";
-    std::vector<std::string> result;
+std::vector<ETurnExt> Turns2Ext(const std::vector<ETurn> &turns) {
+    std::vector<ETurnExt> result;
     for (size_t i = 0; i < turns.size(); ) {
         size_t j = i + 1;
         while (j < turns.size() && j - i < 4 && turns[j] == turns[i])
@@ -271,13 +238,7 @@ std::vector<std::string> PrintableMoves(const std::vector<ETurn> &turns) {
             i = j;
             continue;
         }
-        result.emplace_back();
-        std::string &last = result.back();
-        last += Symbols[turns[i]];
-        if (j - i == 2)
-            last += "2";
-        if (j - i == 3)
-            last += "'";
+        result.push_back(Turn2Ext(turns[i], j - i));
         i = j;
     }
     return result;

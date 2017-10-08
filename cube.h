@@ -31,6 +31,29 @@ enum ETurn {
     T_LEFT
 };
 
+enum ETurnExt {
+    TE_U,
+    TE_U2,
+    TE_U1,
+    TE_D,
+    TE_D2,
+    TE_D1,
+    TE_L2,
+    TE_R2,
+    TE_F2,
+    TE_B2,
+    TE_G1_COUNT,
+    TE_L = TE_G1_COUNT,
+    TE_L1,
+    TE_R,
+    TE_R1,
+    TE_F,
+    TE_F1,
+    TE_B,
+    TE_B1,
+    TE_G0_COUNT
+};
+
 
 template<size_t N>
 struct TCubeImage {
@@ -104,25 +127,6 @@ class TMove {
         bool operator != (const TMove &rgt) const;
         bool operator < (const TMove &rgt) const;
 
-        static TMove &F();
-        static TMove &F2();
-        static TMove &F1();
-        static TMove &U();
-        static TMove &U2();
-        static TMove &U1();
-        static TMove &R();
-        static TMove &R2();
-        static TMove &R1();
-        static TMove &B();
-        static TMove &B2();
-        static TMove &B1();
-        static TMove &D();
-        static TMove &D2();
-        static TMove &D1();
-        static TMove &L();
-        static TMove &L2();
-        static TMove &L1();
-
     private:
         std::vector<ETurn> Turns;
         unsigned char Permutation[NUM_FIELDS];
@@ -132,7 +136,9 @@ TMove operator * (TMove lft, const TMove &rgt);
 TMove operator / (TMove lft, const TMove &rgt);
 
 
-std::vector<std::string> PrintableMoves(const std::vector<ETurn> &turns);
+const TMove &TurnExt2Move(ETurnExt turn);
+std::string TurnExt2String(ETurnExt turn);
+std::vector<ETurnExt> Turns2Ext(const std::vector<ETurn> &turns);
 
 
 template<typename THomomorphism>
@@ -152,7 +158,7 @@ bool UpdateReached(const TCube &cube, const TMove &move,
 
 template<typename TCurrentHomomorphism, typename TNextHomomorphism>
 std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube &from, const TCube &to,
-                        const std::vector<TMove> &doneMoves, size_t candidatesCount,
+                        const std::vector<TMove> &doneMoves, size_t candidatesCount, size_t maxGraphSize,
                         const std::vector<TMove> &allowedMoves,
                         const TCurrentHomomorphism &currentHomomorphism, const TNextHomomorphism &nextHomomorphism) {
     using TCurrentCubeImage = typename TCurrentHomomorphism::TCubeImageType;
@@ -165,8 +171,10 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
     TCurrentReachedMap reachedForward, reachedBackward;
     TNextReachedMap result;
     reachedBackward[currentHomomorphism.GetImage(to)] = TMove();
-    for (size_t i = 0; i < doneMoves.size() || !queueForward.empty() || !queueBackward.empty(); ) {
-        std::cout << i << " " << result.size() << " " << queueForward.size() << " " << queueBackward.size() << " " << reachedForward.size() << " " << reachedBackward.size() << std::endl;
+    for (size_t i = 0; reachedForward.size() < maxGraphSize &&
+                       (i < doneMoves.size() || !queueForward.empty() || !queueBackward.empty()); )
+    {
+        //std::cout << i << " " << result.size() << " " << (queueForward.empty() ? -1 : static_cast<int>(reachedForward[currentHomomorphism.GetImage(queueForward.front())].GetTurnsCount())) << " " << queueForward.size() << " " << queueBackward.size() << " " << reachedForward.size() << " " << reachedBackward.size() << std::endl;
         for (; i < doneMoves.size() && (queueForward.empty() ||
                doneMoves[i].GetTurnsCount() <= reachedForward[currentHomomorphism.GetImage(queueForward.front())].GetTurnsCount());
                ++i)
@@ -176,11 +184,12 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
             auto img = currentHomomorphism.GetImage(c);
             if (img == currentHomomorphism.GetImage(to)) {
                 UpdateReached(c, m, nextHomomorphism, result);
+                std::cout << "i " << i << " " << result.size() << " " << m.GetTurnsCount() << " " << reachedForward.size() << std::endl;
                 if (result.size() >= candidatesCount)
                     return result;
             }
-            queueForward.push_front(c);
-            reachedForward[img] = m;
+            if (UpdateReached(c, m, currentHomomorphism, reachedForward))
+                queueForward.push_front(c);
         }
         if (!queueForward.empty()) {
             TCube cur = queueForward.front();
@@ -189,13 +198,13 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
             for (const auto &move : allowedMoves) {
                 TCube c = move.Act(cur);
                 TMove m = curMove * move;
-                if (!UpdateReached(c, m, currentHomomorphism, reachedForward))
-                    continue;
-                queueForward.push_back(c);
+                if (UpdateReached(c, m, currentHomomorphism, reachedForward))
+                    queueForward.push_back(c);
                 auto it = reachedBackward.find(currentHomomorphism.GetImage(c));
                 if (it != reachedBackward.end()) {
                     m /= it->second;
                     UpdateReached(m.Act(from), m, nextHomomorphism, result);
+                    std::cout << "f " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << m.GetTurnsCount() - it->second.GetTurnsCount() << "+" << it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
                     if (result.size() >= candidatesCount)
                         return result;
                 }
@@ -208,29 +217,30 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
             for (const auto &move : allowedMoves) {
                 TCube c = move.Act(cur);
                 TMove m = curMove * move;
-                if (!UpdateReached(c, m, currentHomomorphism, reachedBackward))
-                    continue;
-                queueBackward.push_back(c);
+                if (UpdateReached(c, m, currentHomomorphism, reachedBackward))
+                    queueBackward.push_back(c);
                 auto it = reachedForward.find(currentHomomorphism.GetImage(c));
                 if (it != reachedForward.end()) {
                     m = it->second / m;
                     UpdateReached(m.Act(from), m, nextHomomorphism, result);
+                    std::cout << "b " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << it->second.GetTurnsCount() << "+" << m.GetTurnsCount() - it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
                     if (result.size() >= candidatesCount)
                         return result;
                 }
             }
         }
     }
-    throw std::logic_error("Unsolvable cube!");
+    if (result.empty())
+        throw std::logic_error("Unsolvable cube!");
 }
 
 template<typename TCurrentHomomorphism, typename TNextHomomorphism>
 std::vector<TMove> Solve(const TCube &from, const TCube &to,
-                         const std::vector<TMove> &doneMoves, size_t candidatesCount,
+                         const std::vector<TMove> &doneMoves, size_t candidatesCount, size_t maxGraphSize,
                          const std::vector<TMove> &allowedMoves,
                          const TCurrentHomomorphism &currentHomomorphism, const TNextHomomorphism &nextHomomorphism) {
     std::vector<TMove> result;
-    for (auto it : DoSolve(from, to, doneMoves, candidatesCount, allowedMoves, currentHomomorphism, nextHomomorphism))
+    for (auto it : DoSolve(from, to, doneMoves, candidatesCount, maxGraphSize, allowedMoves, currentHomomorphism, nextHomomorphism))
         result.push_back(it.second);
     std::sort(result.begin(), result.end(), [] (const TMove &a, const TMove &b) {
         return a.GetTurnsCount() < b.GetTurnsCount();
