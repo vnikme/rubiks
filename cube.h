@@ -147,7 +147,7 @@ bool UpdateReached(const TCube &cube, const TMove &move,
     auto img = hom.GetImage(cube);
     auto it = result.find(img);
     if (it != result.end()) {
-        if (move.GetTurnsCount() < it->second.GetTurnsCount())
+        if (Turns2Exts(move.GetTurns()).size() < Turns2Exts(it->second.GetTurns()).size())
             it->second = move;
         return false;
     } else {
