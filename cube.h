@@ -138,7 +138,7 @@ TMove operator / (TMove lft, const TMove &rgt);
 
 const TMove &TurnExt2Move(ETurnExt turn);
 std::string TurnExt2String(ETurnExt turn);
-std::vector<ETurnExt> Turns2Ext(const std::vector<ETurn> &turns);
+std::vector<ETurnExt> Turns2Exts(const std::vector<ETurn> &turns);
 
 
 template<typename THomomorphism>
@@ -230,8 +230,7 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
             }
         }
     }
-    if (result.empty())
-        throw std::logic_error("Unsolvable cube!");
+    return result;
 }
 
 template<typename TCurrentHomomorphism, typename TNextHomomorphism>

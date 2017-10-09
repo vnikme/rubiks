@@ -228,7 +228,7 @@ static ETurnExt Turn2Ext(ETurn turn, size_t count) {
     throw std::logic_error("Undefined turn id.");
 }
 
-std::vector<ETurnExt> Turns2Ext(const std::vector<ETurn> &turns) {
+std::vector<ETurnExt> Turns2Exts(const std::vector<ETurn> &turns) {
     std::vector<ETurnExt> result;
     for (size_t i = 0; i < turns.size(); ) {
         size_t j = i + 1;
