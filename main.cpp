@@ -1,7 +1,8 @@
-#include <iostream>
 #include <algorithm>
-#include "cube.h"
+#include <iostream>
+#include <sstream>
 
+#include "cube.h"
 
 struct TG0Homomorphism {
     using TCubeImageType = TCubeImage<9>;
@@ -36,28 +37,29 @@ struct TIsomorphism {
     }
 };
 
-EColor Char2Color(char ch) {
-    if (ch == 'W' || ch == 'w')
-        return C_WHITE;
-    if (ch == 'Y' || ch == 'y')
-        return C_YELLOW;
-    if (ch == 'R' || ch == 'r')
-        return C_RED;
-    if (ch == 'O' || ch == 'o')
-        return C_ORANGE;
-    if (ch == 'G' || ch == 'g')
-        return C_GREEN;
-    if (ch == 'B' || ch == 'b')
-        return C_BLUE;
-    throw std::logic_error("Unknown color");
-}
+const std::map<char, EColor> char2color = {
+    {'w', C_WHITE},
+    {'y', C_YELLOW},
+    {'r', C_RED},
+    {'o', C_ORANGE},
+    {'g', C_GREEN},
+    {'b', C_BLUE},
+};
 
 TCube MakePuzzle(std::string colors) {
     colors.erase(std::remove(colors.begin(), colors.end(), ' '), colors.end());
     std::cout << colors.size() << std::endl;
     TCube cube;
-    for (size_t i = 0; i < 48; ++i)
-        cube.SetColor(i, Char2Color(colors[i]));
+    for (size_t i = 0; i < 48; ++i) {
+        char clr = colors[i];
+        auto it = char2color.find(clr);
+        if (it == char2color.cend()) {
+            std::stringstream err;
+            err << "Unknown color: `" << clr << "'";
+            throw std::logic_error(err.str());
+        }
+        cube.SetColor(i, it->second);
+    }
     return cube;
 }
 
