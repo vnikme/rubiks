@@ -51,7 +51,7 @@ TCube MakePuzzle(std::string colors) {
     std::cout << colors.size() << std::endl;
     TCube cube;
     for (size_t i = 0; i < 48; ++i) {
-        char clr = colors[i];
+        char clr = std::tolower(colors[i]);
         auto it = char2color.find(clr);
         if (it == char2color.cend()) {
             std::stringstream err;
