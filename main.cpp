@@ -1,7 +1,8 @@
-#include <iostream>
 #include <algorithm>
-#include "cube.h"
+#include <iostream>
+#include <sstream>
 
+#include "cube.h"
 
 struct TG0Homomorphism {
     using TCubeImageType = TCubeImage<9>;
@@ -69,28 +70,30 @@ std::vector<ETurnExt> ReduceSolution(const TCube &puzzle, const std::vector<ETur
 }
 
 
-EColor Char2Color(char ch) {
-    if (ch == 'W' || ch == 'w')
-        return C_WHITE;
-    if (ch == 'Y' || ch == 'y')
-        return C_YELLOW;
-    if (ch == 'R' || ch == 'r')
-        return C_RED;
-    if (ch == 'O' || ch == 'o')
-        return C_ORANGE;
-    if (ch == 'G' || ch == 'g')
-        return C_GREEN;
-    if (ch == 'B' || ch == 'b')
-        return C_BLUE;
-    throw std::logic_error("Unknown color");
-}
+const std::map<char, EColor> char2color = {
+    {'w', C_WHITE},
+    {'y', C_YELLOW},
+    {'r', C_RED},
+    {'o', C_ORANGE},
+    {'g', C_GREEN},
+    {'b', C_BLUE},
+};
+
 
 TCube MakePuzzle(std::string colors) {
     colors.erase(std::remove(colors.begin(), colors.end(), ' '), colors.end());
     std::cout << colors.size() << std::endl;
     TCube cube;
-    for (size_t i = 0; i < 48; ++i)
-        cube.SetColor(i, Char2Color(colors[i]));
+    for (size_t i = 0; i < 48; ++i) {
+        char clr = std::tolower(colors[i]);
+        auto it = char2color.find(clr);
+        if (it == char2color.cend()) {
+            std::stringstream err;
+            err << "Unknown color: `" << clr << "'";
+            throw std::logic_error(err.str());
+        }
+        cube.SetColor(i, it->second);
+    }
     return cube;
 }
 
@@ -120,7 +123,7 @@ int main() {
         zero.SetColor(i, static_cast<EColor>(i / 8));
     //TCube puzzle(MakePuzzle("ooyorwyb gobbwyyg rrrboobb rywgwwby bgywywro owgrgggr"));
     //TCube puzzle(MakePuzzle("OWRWGWWYRRORYWRYGOGOYOOGYYWGBYBWBOGGBORRBGBYBBWR"));
-    TCube puzzle(MakePuzzle("YBYYYYOBBROYROWGRWWBGRGWRBGYWRGBOWWBOWROYOBGRGOG"));
+    //TCube puzzle(MakePuzzle("YBYYYYOBBROYROWGRWWBGRGWRBGYWRGBOWWBOWROYOBGRGOG"));
     //TCube puzzle(MakePuzzle("ygbgbbyr yggworrr wwooygyo ywwgoooy wrwbbbbg brgywrro"));
     //TCube puzzle(MakePuzzle("wrwbgwow ryrbgrwr grgwygog yoybgyry owobgoyo brbywbob"));
     //TCube puzzle(MakePuzzle("yrygbyoy rwrgbryr brbywbob wowgbwrw oyogbowo grgwygog"));
@@ -128,7 +131,7 @@ int main() {
     //TCube puzzle(MakePuzzle("bwrygwro rbbbbroy gryygggr bggbwboo gwyyroow wwyyrwoo"));
     //TCube puzzle(MakePuzzle("bygyywwb bbwobyby ooogrywr wrywwwrg rorggbyg rgoboorg"));
     //TCube puzzle(MakePuzzle("bwrygywr wgwbywby gogyrbww oboygoor boyrgyrb gorrbgwo"));
-    //TCube puzzle(MakePuzzle("ybywoggr rbbryowr bgwyrgbg orogygor ywwbrwgw ywboobyo"));
+    TCube puzzle(MakePuzzle("ybywoggr rbbryowr bgwyrgbg orogygor ywwbrwgw ywboobyo"));
     //TCube puzzle(MakePuzzle("rbobrgoo oyrobyrg ywwwgygr rywgwwrg oybyrggb bwbooybw"));
     //TCube puzzle(zero);
     TG0Homomorphism hom;
