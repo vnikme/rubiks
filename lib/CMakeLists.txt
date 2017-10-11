@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
-set(TARGET_FILE_NAME "solve")
+set(TARGET_FILE_NAME "rubiks_lib")
 project(${TARGET_FILE_NAME})
 #set( CMAKE_VERBOSE_MAKEFILE on )
-
-INCLUDE(CMakeLists.clean.txt)
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -48,14 +46,15 @@ link_directories(
 
 set(HDRS
     cube.h
+    kociemba.h
 )
 
 set(SRCS
     cube.cpp
-    main.cpp
+    kociemba.cpp
 )
 
-add_executable(${TARGET_FILE_NAME} WIN32 ${HDRS} ${SRCS})
+add_library(${TARGET_FILE_NAME} ${HDRS} ${SRCS})
 
 set_target_properties(${TARGET_FILE_NAME} PROPERTIES DEBUG_POSTFIX _d)
 
@@ -79,4 +78,5 @@ set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}")
 install(TARGETS ${TARGET_FILE_NAME}
     RUNTIME DESTINATION bin
     CONFIGURATIONS All
+    ARCHIVE DESTINATION arc
 )

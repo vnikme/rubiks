@@ -101,6 +101,8 @@ class TCube {
         static const std::vector<size_t> &GetAllCorners();
         static const std::vector<size_t> &GetAllEdges();
         static size_t GetOppositeEdge(size_t field);
+        bool operator == (const TCube &rgt) const;
+        bool operator != (const TCube &rgt) const;
 
     private:
         unsigned char Data[(NUM_FIELDS * BITS_FOR_COLORS + 7) / 8];
@@ -139,6 +141,10 @@ TMove operator / (TMove lft, const TMove &rgt);
 const TMove &TurnExt2Move(ETurnExt turn);
 std::string TurnExt2String(ETurnExt turn);
 std::vector<ETurnExt> Turns2Exts(const std::vector<ETurn> &turns);
+
+
+TCube MakePuzzle(std::string colors);
+TCube MakeSolvedCube();
 
 
 template<typename THomomorphism>

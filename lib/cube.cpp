@@ -1,4 +1,5 @@
 #include "cube.h"
+#include <sstream>
 
 
 // TCube
@@ -44,6 +45,17 @@ size_t TCube::GetOppositeEdge(size_t field) {
     if (it == EdgesMap.end())
         throw std::logic_error("Can't get opposite edge");
     return it->second;
+}
+
+bool TCube::operator == (const TCube &rgt) const {
+    for (size_t i = 0; i < NUM_FIELDS; ++i)
+        if (Data[i] != rgt.Data[i])
+            return false;
+    return true;
+}
+
+bool TCube::operator != (const TCube &rgt) const {
+    return !(*this == rgt);
 }
 
 size_t TCube::GetBit(size_t bit) const {
@@ -242,5 +254,39 @@ std::vector<ETurnExt> Turns2Exts(const std::vector<ETurn> &turns) {
         i = j;
     }
     return result;
+}
+
+
+const std::map<char, EColor> char2color = {
+    {'w', C_WHITE},
+    {'y', C_YELLOW},
+    {'r', C_RED},
+    {'o', C_ORANGE},
+    {'g', C_GREEN},
+    {'b', C_BLUE},
+};
+
+TCube MakePuzzle(std::string colors) {
+    colors.erase(std::remove(colors.begin(), colors.end(), ' '), colors.end());
+    std::cout << colors.size() << std::endl;
+    TCube cube;
+    for (size_t i = 0; i < 48; ++i) {
+        char clr = std::tolower(colors[i]);
+        auto it = char2color.find(clr);
+        if (it == char2color.cend()) {
+            std::stringstream err;
+            err << "Unknown color: '" << clr << "'";
+            throw std::logic_error(err.str());
+        }
+        cube.SetColor(i, it->second);
+    }
+    return cube;
+}
+
+TCube MakeSolvedCube() {
+    TCube zero;
+    for (size_t i = 0; i < TCube::NUM_FIELDS; ++i)
+        zero.SetColor(i, static_cast<EColor>(i / 8));
+    return zero;
 }
 
