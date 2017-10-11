@@ -190,7 +190,7 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
             auto img = currentHomomorphism.GetImage(c);
             if (img == currentHomomorphism.GetImage(to)) {
                 UpdateReached(c, m, nextHomomorphism, result);
-                std::cout << "i " << i << " " << result.size() << " " << m.GetTurnsCount() << " " << reachedForward.size() << std::endl;
+                //std::cout << "i " << i << " " << result.size() << " " << m.GetTurnsCount() << " " << reachedForward.size() << std::endl;
                 if (result.size() >= candidatesCount)
                     return result;
             }
@@ -210,7 +210,7 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
                 if (it != reachedBackward.end()) {
                     m /= it->second;
                     UpdateReached(m.Act(from), m, nextHomomorphism, result);
-                    std::cout << "f " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << m.GetTurnsCount() - it->second.GetTurnsCount() << "+" << it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
+                    //std::cout << "f " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << m.GetTurnsCount() - it->second.GetTurnsCount() << "+" << it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
                     if (result.size() >= candidatesCount)
                         return result;
                 }
@@ -229,7 +229,7 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
                 if (it != reachedForward.end()) {
                     m = it->second / m;
                     UpdateReached(m.Act(from), m, nextHomomorphism, result);
-                    std::cout << "b " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << it->second.GetTurnsCount() << "+" << m.GetTurnsCount() - it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
+                    //std::cout << "b " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << it->second.GetTurnsCount() << "+" << m.GetTurnsCount() - it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
                     if (result.size() >= candidatesCount)
                         return result;
                 }

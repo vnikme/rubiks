@@ -48,7 +48,7 @@ size_t TCube::GetOppositeEdge(size_t field) {
 }
 
 bool TCube::operator == (const TCube &rgt) const {
-    for (size_t i = 0; i < NUM_FIELDS; ++i)
+    for (size_t i = 0; i < sizeof(Data) / sizeof(*Data); ++i)
         if (Data[i] != rgt.Data[i])
             return false;
     return true;
@@ -268,7 +268,7 @@ const std::map<char, EColor> char2color = {
 
 TCube MakePuzzle(std::string colors) {
     colors.erase(std::remove(colors.begin(), colors.end(), ' '), colors.end());
-    std::cout << colors.size() << std::endl;
+    //std::cout << colors.size() << std::endl;
     TCube cube;
     for (size_t i = 0; i < 48; ++i) {
         char clr = std::tolower(colors[i]);
