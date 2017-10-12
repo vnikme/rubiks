@@ -14,9 +14,6 @@ def do_general(request, body):
     patch_cache_control(response, max_age=0)
     return response
 
-def privacy_page(request):
-    return do_general(request, 'privacy.html')
-
 def main_page(request):
     return do_general(request, 'main.html')
 
