@@ -18,7 +18,6 @@ ol, ul {
 }
 
 .square {
-  background: #fff;
   border: 1px solid #999;
   float: left;
   font-size: 36pt;
@@ -32,12 +31,12 @@ ol, ul {
   width: 50pt;
 }
 
-.square:focus {
-  outline: none;
+.square:hover {
+  background: green;
 }
 
 .kbd-navigation .square:focus {
-  background: #ddd;
+  background: red;
 }
 
 .game {

@@ -18,6 +18,8 @@ from django.contrib import admin
 import rubiks.views
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
+    #url(r'^admin/', admin.site.urls),
+    url(r'^nature.*', rubiks.views.nature_page),
+    url(r'^solve.*', rubiks.views.solve_page),
     url(r'^.*', rubiks.views.main_page),
 ]

@@ -1,4 +1,5 @@
 #include "cube.h"
+#include <map>
 #include <sstream>
 
 

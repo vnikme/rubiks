@@ -1,145 +1,260 @@
     <div id="root"></div>
     <script type="text/babel">
-        function Square(props) {
-          return (
-            <button className="square" onClick={props.onClick}>
-              {props.value}
-            </button>
-          );
+        var Button = Reactstrap.Button;
+
+        const styles = {
+            square: { width: "32pt", height: "32pt", border: "2pt solid black", textAlign: "center", fontWeight: "bold" },
+            transparentSquare: { backgroundColor: "white", border: "0" },
+            emptySquare: { backgroundColor: "lightgray" },
+            whiteSquare: { backgroundColor: "white" },
+            redSquare: { backgroundColor: "red" },
+            greenSquare: { backgroundColor: "green" },
+            yellowSquare: { backgroundColor: "yellow" },
+            orangeSquare: { backgroundColor: "orange" },
+            blueSquare: { backgroundColor: "blue" },
+            answer: { fontWeight: "bold", fontSize: "16pt" }
+        };
+
+
+        class TransparentSquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.transparentSquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
         }
 
-        class Board extends React.Component {
-          renderSquare(i) {
-            return (
-              <Square
-                value={this.props.squares[i]}
-                onClick={() => this.props.onClick(i)}
-              />
-            );
-          }
+        class EmptySquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.emptySquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
+        }
 
-          render() {
-            return (
-              <div>
-                <div className="board-row">
-                  {this.renderSquare(0)}
-                  {this.renderSquare(1)}
-                  {this.renderSquare(2)}
-                </div>
-                <div className="board-row">
-                  {this.renderSquare(3)}
-                  {this.renderSquare(4)}
-                  {this.renderSquare(5)}
-                </div>
-                <div className="board-row">
-                  {this.renderSquare(6)}
-                  {this.renderSquare(7)}
-                  {this.renderSquare(8)}
-                </div>
-              </div>
-            );
-          }
+        class WhiteSquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.whiteSquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
+        }
+
+        class RedSquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.redSquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
+        }
+
+        class GreenSquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.greenSquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
+        }
+
+        class YellowSquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.yellowSquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
+        }
+
+        class OrangeSquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.orangeSquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
+        }
+
+        class BlueSquare extends React.Component {
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.blueSquare)} onClick={this.props.onClick}>{this.props.text}</td> );
+            }
+        }
+
+        class BaseField {
+            constructor(color, text) {
+                this.Color = color;
+                this.Text = text;
+            }
+
+            BuildReactComponent() {
+                var handler = this.MakeOnClickHandler();
+                if (this.Color == "*")
+                    return ( <EmptySquare onClick={handler} text={this.Text}/> );
+                if (this.Color == "w")
+                    return ( <WhiteSquare onClick={handler} text={this.Text} /> );
+                if (this.Color == "r")
+                    return ( <RedSquare onClick={handler} text={this.Text} /> );
+                if (this.Color == "g")
+                    return ( <GreenSquare onClick={handler} text={this.Text} /> );
+                if (this.Color == "y")
+                    return ( <YellowSquare onClick={handler} text={this.Text} /> );
+                if (this.Color == "o")
+                    return ( <OrangeSquare onClick={handler} text={this.Text} /> );
+                if (this.Color == "b")
+                    return ( <BlueSquare onClick={handler} text={this.Text} /> );
+                return ( <TransparentSquare text={this.Text} /> );
+            }
+
+            MakeOnClickHandler() {
+                return function() {
+                }
+            }
+        }
+
+        class Field extends BaseField {
+            constructor(color, index, clickHandler) {
+                super(color, "");
+                this.Index = index;
+                this.ClickHandler = clickHandler;
+            }
+
+            MakeOnClickHandler() {
+                var self = this;
+                return function() {
+                    self.ClickHandler(self.Index);
+                }
+            }
+        }
+
+        class CenterField extends BaseField {
+            constructor(color, text, clickHandler) {
+                super(color, text);
+                this.ClickHandler = clickHandler;
+            }
+
+            MakeOnClickHandler() {
+                var self = this;
+                return function() {
+                    self.ClickHandler(self.Color);
+                }
+            }
         }
 
         class Game extends React.Component {
-          constructor() {
-            super();
-            this.state = {
-              history: [
-                {
-                  squares: Array(9).fill(null)
-                }
-              ],
-              stepNumber: 0,
-              xIsNext: true
-            };
-          }
-
-          handleClick(i) {
-            const history = this.state.history.slice(0, this.state.stepNumber + 1);
-            const current = history[history.length - 1];
-            const squares = current.squares.slice();
-            if (calculateWinner(squares) || squares[i]) {
-              return;
-            }
-            squares[i] = this.state.xIsNext ? "X" : "O";
-            this.setState({
-              history: history.concat([
-                {
-                  squares: squares
-                }
-              ]),
-              stepNumber: history.length,
-              xIsNext: !this.state.xIsNext
-            });
-          }
-
-          jumpTo(step) {
-            this.setState({
-              stepNumber: step,
-              xIsNext: step % 2 ? false : true
-            });
-          }
-
-          render() {
-            const history = this.state.history;
-            const current = history[this.state.stepNumber];
-            const winner = calculateWinner(current.squares);
-
-            const moves = history.map((step, move) => {
-              const desc = move ? "Move #" + move : "Game start";
-              return (
-                <li key={move}>
-                  <a href="#" onClick={() => this.jumpTo(move)}>{desc}</a>
-                </li>
-              );
-            });
-
-            let status;
-            if (winner) {
-              status = "Winner: " + winner;
-            } else {
-              status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+            constructor() {
+                super();
+                var fields = [];
+                for (var i = 0; i < 48; ++i)
+                    fields.push("*");
+                this.state = {Fields: fields, SelectedColor: "w", Answer: "", Updater: -1};
             }
 
-            return (
-              <div className="game">
-                <div className="game-board">
-                  <Board
-                    squares={current.squares}
-                    onClick={i => this.handleClick(i)}
-                  />
-                </div>
-                <div className="game-info">
-                  <div>{status}</div>
-                  <ol>{moves}</ol>
-                </div>
-              </div>
-            );
-          }
+            MakeBackendAnswerProcessor() {
+                var self = this;
+                return (response) => {
+                    var state = self.state;
+                    var js = JSON.parse(response);
+                    if (js.state == "pending") {
+                        state.Answer = js.state;
+                    } else if (js.state == "fail") {
+                        state.Answer = js.state;
+                        if (state.Updater != -1) {
+                            clearInterval(state.Updater);
+                            state.Updater = -1;
+                        }
+                    } else if (js.state == "ok") {
+                        var ans = JSON.parse(js.result);
+                        state.Answer = "Answer size is " + ans.length + ":";
+                        for (var i = 0; i < ans.length; ++i)
+                            state.Answer += (" " + ans[i]);
+                        if (state.Updater != -1) {
+                            clearInterval(state.Updater);
+                            state.Updater = -1;
+                        }
+                    } else {
+                        state.Answer = "";
+                    }
+                    self.setState(state);
+                }
+            }
+
+            Solve() {
+                var cube = "";
+                for (var i = 0; i < this.state.Fields.length; ++i) {
+                    if (this.state.Fields[i] == '*') {
+                        var state = this.state;
+                        state.Answer = "Cube is invalid!";
+                        this.setState(state);
+                        return;
+                    }
+                    cube += this.state.Fields[i];
+                }
+                //cube = "wywggoorobybboorgrrrybgowwbwryygywyowrbwgogrybgb";
+                var self = this;
+                var doSolve = function() {
+                    httpGetAsync("/solve?cube=" + cube, self.MakeBackendAnswerProcessor());
+                };
+                var state = this.state;
+                if (state.Updater != -1)
+                    clearInterval(state.Updater);
+                state.Updater = setInterval(doSolve, 500);
+                this.setState(state);
+            }
+
+            render() {
+                var fields = [];
+                for (var i = 0; i < 12; ++i) {
+                    var row = [];
+                    for (var j = 0; j < 10; ++j) 
+                        row.push(new BaseField(" "));
+                    fields.push(row);
+                }
+                var selectColorHandler = (color) => {
+                    var state = this.state;
+                    state.SelectedColor = color;
+                    this.setState(state);
+                }
+                var switchColorHandler = (index) => {
+                    var state = this.state;
+                    state.Fields[index] = state.SelectedColor;
+                    state.Answer = "";
+                    if (state.Updater != -1) {
+                        clearInterval(state.Updater);
+                        state.Updater = -1;
+                    }
+                    this.setState(state);
+                }
+                for (var i = 0; i < 4; ++i) {
+                    var adds = [[6, 3], [3, 3], [6, 6], [0, 3], [9, 3], [6, 0]];
+                    var centers = "wrgyob";
+                    var surfaces = "FTRBDL";
+                    for (var j = 0; j < adds.length; ++j) {
+                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new Field(this.state.Fields[i + j * 8], i + j * 8, switchColorHandler);
+                        fields[adds[j][0] + 1][adds[j][1] + 1] = new CenterField(centers[j], surfaces[j], selectColorHandler);
+                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new Field(this.state.Fields[i + 4 + j * 8], i + 4 + j * 8, switchColorHandler);
+                    }
+                }
+                var rows = fields.map(function(row, i) {
+                    var cells = row.map(function(cell, j) {
+                        return cell.BuildReactComponent(j);
+                    });
+                    return ( <tr>{cells}</tr> );
+                });
+                var selected = new BaseField(this.state.SelectedColor, "");
+                selected = selected.BuildReactComponent();
+                return (<div>
+                            <div style={styles.answer}>{this.state.Answer}</div>
+                            <div class="row">
+                                <div class="col-md-6 col-sm-6 col-xs-12" id="cube_div">
+                                    <table>{rows}</table>
+                                </div>
+                                <div class="col-md-6 col-sm-6 col-xs-12" id="agenda_div">
+                                    <ul>
+                                        <li>Choose a color by clicking on one of the centers.</li>
+                                        <li>Fill gray fields with colors.</li>
+                                        <li>Click 'Solve' button until you get a solution or a fail.</li>
+                                        <li>Hold your cube white color to the front, red to the up, green to the right.</li>
+                                        <li>Moves: F - front, B - back, U - up, D - down, L - left, R - right.</li>
+                                        <li>Simple moves are clockwise, moves with apostrophe (') are counter-clockwise, moves with (2) are 180 degrees.</li>
+                                    </ul>
+                                    <br />
+                                    <div>Selected color is:<br /><table><tr>{selected}</tr></table></div>
+                                </div>
+                            </div><br />
+                            <div>
+                                <Button color="primary" onClick={() => this.Solve()}>Solve</Button><br /><br />
+                            </div>
+                        </div>);
+            }
         }
 
         // ========================================
 
         ReactDOM.render(<Game />, document.getElementById("root"));
 
-        function calculateWinner(squares) {
-          const lines = [
-            [0, 1, 2],
-            [3, 4, 5],
-            [6, 7, 8],
-            [0, 3, 6],
-            [1, 4, 7],
-            [2, 5, 8],
-            [0, 4, 8],
-            [2, 4, 6]
-          ];
-          for (let i = 0; i < lines.length; i++) {
-            const [a, b, c] = lines[i];
-            if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-              return squares[a];
-            }
-          }
-          return null;
-        }
     </script>
+

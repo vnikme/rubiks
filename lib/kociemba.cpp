@@ -68,7 +68,7 @@ std::vector<ETurnExt> ReduceSolution(const TCube &puzzle, const std::vector<ETur
 }
 
 
-std::vector<ETurnExt> KociembaSolution(const TCube &puzzle, const TCube &target) {
+bool KociembaSolution(const TCube &puzzle, const TCube &target, std::vector<ETurnExt> &result) {
     TG0Homomorphism hom;
     TIsomorphism iso;
     std::vector<TMove> g0, g1;
@@ -76,8 +76,13 @@ std::vector<ETurnExt> KociembaSolution(const TCube &puzzle, const TCube &target)
         g0.push_back(TurnExt2Move(static_cast<ETurnExt>(i)));
     for (size_t i = 0; i < TE_G1_COUNT; ++i)
         g1.push_back(TurnExt2Move(static_cast<ETurnExt>(i)));
-    std::vector<TMove> candidates = Solve(puzzle, target, {TMove()}, 10, 3000000, g0, hom, iso);
-    auto solution = Solve(puzzle, target, candidates, 1, 3000000, g1, iso, iso);
-    return !solution.empty() ? Turns2Exts(solution.front().GetTurns()) : std::vector<ETurnExt>();
+    auto candidates = Solve(puzzle, target, {TMove()}, 10, 2000000, g0, hom, iso);
+    //std::cout << "Stage 1: " << (!candidates.empty() ? Turns2Exts(candidates.front().GetTurns()).size() : 0) << std::endl;
+    auto solution = Solve(puzzle, target, candidates, 1, 4000000, g1, iso, iso);
+    //std::cout << "Stage 2: " << (!solution.empty() ? Turns2Exts(solution.front().GetTurns()).size() : 0) << std::endl;
+    if (solution.empty())
+        return false;
+    result = Turns2Exts(solution.front().GetTurns());
+    return true;
 }
 

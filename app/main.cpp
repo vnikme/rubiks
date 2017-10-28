@@ -6,7 +6,9 @@
 
 
 bool RunTest(const TCube &puzzle, const TCube &target) {
-    auto solution = KociembaSolution(puzzle, target);
+    std::vector<ETurnExt> solution;
+    if (!KociembaSolution(puzzle, target, solution))
+        return false;
     std::cout << "Answer contains " << solution.size() << " moves" << std::endl << "Solution is:";
     TMove move;
     for (ETurnExt turn : solution) {
@@ -19,6 +21,7 @@ bool RunTest(const TCube &puzzle, const TCube &target) {
 
 void RunTests() {
     std::vector<std::string> tests = {
+        "wwwwwwww wwwwwwww wwwwwwww wwwwwwww wwwwwwww wwwwwwww",
         "wwwwwwww rrrrrrrr gggggggg yyyyyyyy oooooooo bbbbbbbb",
         "ooyorwyb gobbwyyg rrrboobb rywgwwby bgywywro owgrgggr",
         "OWRWGWWYRRORYWRYGOGOYOOGYYWGBYBWBOGGBORRBGBYBBWR",

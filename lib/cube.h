@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <set>
 #include <list>
 #include <exception>
@@ -68,6 +68,18 @@ struct TCubeImage {
         return (!(*this < rgt) && !(rgt < *this));
     }
 };
+
+
+namespace std {
+    template<size_t N>
+    struct hash<TCubeImage<N>> {
+        typedef TCubeImage<N> argument_type;
+        typedef size_t result_type;
+        result_type operator () (const argument_type &obj) const noexcept {
+            return std::hash<std::string>()(std::string(obj.Data, obj.Data + N));
+        }
+    };
+} // namespace std
 
 
 /*
@@ -149,7 +161,7 @@ TCube MakeSolvedCube();
 
 template<typename THomomorphism>
 bool UpdateReached(const TCube &cube, const TMove &move,
-                   const THomomorphism &hom, std::map<typename THomomorphism::TCubeImageType, TMove> &result) {
+                   const THomomorphism &hom, std::unordered_map<typename THomomorphism::TCubeImageType, TMove> &result) {
     auto img = hom.GetImage(cube);
     auto it = result.find(img);
     if (it != result.end()) {
@@ -163,22 +175,22 @@ bool UpdateReached(const TCube &cube, const TMove &move,
 }
 
 template<typename TCurrentHomomorphism, typename TNextHomomorphism>
-std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube &from, const TCube &to,
+std::unordered_map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube &from, const TCube &to,
                         const std::vector<TMove> &doneMoves, size_t candidatesCount, size_t maxGraphSize,
                         const std::vector<TMove> &allowedMoves,
                         const TCurrentHomomorphism &currentHomomorphism, const TNextHomomorphism &nextHomomorphism) {
     using TCurrentCubeImage = typename TCurrentHomomorphism::TCubeImageType;
     using TNextCubeImage = typename TNextHomomorphism::TCubeImageType;
-    using TCurrentReachedMap = std::map<TCurrentCubeImage, TMove>;
-    using TNextReachedMap = std::map<TNextCubeImage, TMove>;
+    using TCurrentReachedMap = std::unordered_map<TCurrentCubeImage, TMove>;
+    using TNextReachedMap = std::unordered_map<TNextCubeImage, TMove>;
     using TQueue = std::list<TCube>;
     TQueue queueForward, queueBackward;
     queueBackward.push_back(to);
     TCurrentReachedMap reachedForward, reachedBackward;
     TNextReachedMap result;
     reachedBackward[currentHomomorphism.GetImage(to)] = TMove();
-    for (size_t i = 0; reachedForward.size() < maxGraphSize &&
-                       (i < doneMoves.size() || !queueForward.empty() || !queueBackward.empty()); )
+    for (size_t i = 0; (reachedForward.size() + reachedBackward.size()) < maxGraphSize &&
+                       (i < doneMoves.size() || (!queueForward.empty() && !queueBackward.empty())); )
     {
         //std::cout << i << " " << result.size() << " " << (queueForward.empty() ? -1 : static_cast<int>(reachedForward[currentHomomorphism.GetImage(queueForward.front())].GetTurnsCount())) << " " << queueForward.size() << " " << queueBackward.size() << " " << reachedForward.size() << " " << reachedBackward.size() << std::endl;
         for (; i < doneMoves.size() && (queueForward.empty() ||
@@ -211,8 +223,10 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
                     m /= it->second;
                     UpdateReached(m.Act(from), m, nextHomomorphism, result);
                     //std::cout << "f " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << m.GetTurnsCount() - it->second.GetTurnsCount() << "+" << it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
-                    if (result.size() >= candidatesCount)
+                    if (result.size() >= candidatesCount) {
+                        //std::cout << reachedForward.size() << std::endl;
                         return result;
+                    }
                 }
             }
         }
@@ -230,8 +244,10 @@ std::map<typename TNextHomomorphism::TCubeImageType, TMove> DoSolve(const TCube 
                     m = it->second / m;
                     UpdateReached(m.Act(from), m, nextHomomorphism, result);
                     //std::cout << "b " << i << " " << result.size() << " " << m.GetTurnsCount() << "=" << it->second.GetTurnsCount() << "+" << m.GetTurnsCount() - it->second.GetTurnsCount() << " " << reachedForward.size() << std::endl;
-                    if (result.size() >= candidatesCount)
+                    if (result.size() >= candidatesCount) {
+                        //std::cout << reachedForward.size() << std::endl;
                         return result;
+                    }
                 }
             }
         }
