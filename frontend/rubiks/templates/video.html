@@ -1,7 +1,7 @@
 <div>
 <div class="item">
 <div id="fields"></div>
-<video id="video" width="320" height="240" autoplay="autoplay"></video>
+<video id="video" width="320" height="240" autoplay="autoplay" hidden></video>
 </div>
 <div class="item">
 <canvas id="canvas" width="240" height="240" ></canvas>
@@ -89,7 +89,7 @@ window.onload = function () {
     var video = document.getElementById('video');
     var fields = document.getElementById('fields');
     var context = canvas.getContext('2d');
-    var videoStreamUrl = null;
+    var videoStream = null, videoStreamUrl = null;
     const targetWidth = 240, targetHeight = 240;
     var videoWidth = targetWidth, videoHeight = targetHeight;
 
@@ -124,16 +124,9 @@ window.onload = function () {
     // запрашиваем разрешение на доступ к поточному видео камеры
     navigator.getUserMedia({video: { facingMode: "environment" }}, function (stream) {
         videoStream = stream;
-        video.style.display = "none";
-        video.style.resize = "none";
-        canvas.style.resize = "none";
-        // получаем url поточного видео
         videoStreamUrl = window.URL.createObjectURL(stream);
-        //alert(videoStreamUrl);
-        // устанавливаем как источник для video 
         video.src = videoStreamUrl;
     }, function () {
-        console.log('что-то не так с видеостримом или пользователь запретил его использовать :P');
     });
 
     setInterval(captureMe, 100);
