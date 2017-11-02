@@ -3,7 +3,7 @@
         var Button = Reactstrap.Button;
 
         const styles = {
-            square: { width: "32pt", height: "32pt", border: "2pt solid black", textAlign: "center", fontWeight: "bold" },
+            square: { width: "32pt", height: "32pt", border: "2pt solid black", textAlign: "center", fontWeight: "bold", resize: "none" },
             transparentSquare: { backgroundColor: "white", border: "0" },
             emptySquare: { backgroundColor: "lightgray" },
             whiteSquare: { backgroundColor: "white" },
@@ -218,14 +218,15 @@
                         fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new Field(this.state.Fields[i + 4 + j * 8], i + 4 + j * 8, switchColorHandler);
                     }
                 }
+                var selected = new BaseField(this.state.SelectedColor, "");
+                //selected = selected.BuildReactComponent();
+                fields[1][1] = selected;
                 var rows = fields.map(function(row, i) {
                     var cells = row.map(function(cell, j) {
                         return cell.BuildReactComponent(j);
                     });
                     return ( <tr>{cells}</tr> );
                 });
-                var selected = new BaseField(this.state.SelectedColor, "");
-                selected = selected.BuildReactComponent();
                 return (<div>
                             <div style={styles.answer}>{this.state.Answer}</div>
                             <div class="row">
@@ -242,7 +243,6 @@
                                         <li>Simple moves are clockwise, moves with apostrophe (') are counter-clockwise, moves with (2) are 180 degrees.</li>
                                     </ul>
                                     <br />
-                                    <div>Selected color is:<br /><table><tr>{selected}</tr></table></div>
                                 </div>
                             </div><br />
                             <div>

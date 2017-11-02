@@ -1,0 +1,142 @@
+<div>
+<div class="item">
+<div id="fields"></div>
+<video id="video" width="320" height="240" autoplay="autoplay"></video>
+</div>
+<div class="item">
+<canvas id="canvas" width="240" height="240" ></canvas>
+</div>
+</div>
+
+<script>
+function almostSame(a, b) {
+    if (a < 30 && b < 30)
+        return true;
+    if (Math.abs(a - b) < 20)
+        return true;
+    return (a >= 30 && b >= 30 && a / b < 1.2 && b / a < 1.2);
+}
+
+function rgbToColor(r, g, b) {
+    if (r > 70 && almostSame(g, b) && r > Math.max(g, b) * 1.3)
+        return "r";
+    if (r > 100 && g > b * 2 && 1.5 * g < r)
+        return "o";
+    if (r > 90 && r > b * 1.7 && almostSame(r, g))
+        return "y";
+    if (almostSame(r, g) && almostSame(g, b) && almostSame(r, b) && r > 70)
+        return "w";
+    if (g > 70 && g > Math.max(r, b) * 2)
+        return "g";
+    if (b > 70 && b > Math.max(r, g) + 30)
+        return "b";
+    return "*";
+}
+
+function colorVote(distr) {
+    var res = "*";
+    for (var key in distr) {
+        if (distr[key] > distr[res])
+            res = key;
+    }
+    return res;
+}
+
+function drawGridAndParseFields(canvas, context, margin, thickness) {
+    var cx = Math.floor(canvas.width / 2 - margin), cy = Math.floor(canvas.height / 2 - margin);
+    var total, mx, my;
+    if (cx >= cy) {
+        total = cy * 2;
+        mx = cx - cy;
+        my = 0;
+    } else {
+        total = cx * 2;
+        mx = 0;
+        my = cy - cx;
+    }
+    var step = Math.floor(total / 3);
+
+    var result = [];
+    for (var i = 0; i < 3; ++i) {
+        var row = [];
+        for (var j = 0; j < 3; ++j) {
+            var idata = context.getImageData(margin + mx + j * step, margin + my + i * step, step, step);
+            var data = idata.data;
+            var distr = {"w": 0, "r": 0, "g": 0, "y": 0, "o": 0, "b": 0, "*": 0};
+            for (var k = 0; k < step * step; ++k) {
+                var r = data[k * 4], g = data[k * 4 + 1], b = data[k * 4 + 2];
+                //row.push([r, g, b, rgbToColor(r, g, b)]);
+                //return row;
+                distr[rgbToColor(r, g, b)] += 1;
+            }
+            //row.push([Math.floor(r / step / step), Math.floor(g / step / step), Math.floor(b / step / step)]);
+            row.push(colorVote(distr));
+        }
+        result.push(row);
+    }
+
+    context.fillStyle = "lime";
+    for (var i = 0; i < 4; ++i) {
+        context.fillRect(margin + mx + i * step, margin + my, thickness, total);
+        context.fillRect(margin + mx, margin + my + i * step, total, thickness);
+    }
+
+    return result;
+}
+
+window.onload = function () {
+    var canvas = document.getElementById('canvas');
+    var video = document.getElementById('video');
+    var fields = document.getElementById('fields');
+    var context = canvas.getContext('2d');
+    var videoStreamUrl = null;
+    const targetWidth = 240, targetHeight = 240;
+    var videoWidth = targetWidth, videoHeight = targetHeight;
+
+    // функция которая будет выполнена при нажатии на кнопку захвата кадра
+    var captureMe = function () {
+        if (!videoStreamUrl)
+            return;
+
+        var w = video.videoWidth, h = video.videoHeight;
+        if (w != 0 || h != 0) {
+            var k = Math.min(targetWidth / w, targetHeight / h);
+            w *= k;
+            h *= k;
+            if (videoWidth != w || videoHeight != h) {
+                video.width = w;
+                video.height = h;
+                canvas.width = Math.min(w, h);
+                canvas.height = Math.min(w, h);
+                videoWidth = w;
+                videoHeight = h;
+            }
+
+            context.drawImage(video, 0, 0, videoWidth, videoHeight);
+            var base64data = canvas.toDataURL('image/png');
+            var flds = drawGridAndParseFields(canvas, context, 1, 2);
+            fields.innerHTML = flds;
+        }
+    }
+
+    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+    window.URL.createObjectURL = window.URL.createObjectURL || window.URL.webkitCreateObjectURL || window.URL.mozCreateObjectURL || window.URL.msCreateObjectURL;
+    // запрашиваем разрешение на доступ к поточному видео камеры
+    navigator.getUserMedia({video: { facingMode: "environment" }}, function (stream) {
+        videoStream = stream;
+        video.style.display = "none";
+        video.style.resize = "none";
+        canvas.style.resize = "none";
+        // получаем url поточного видео
+        videoStreamUrl = window.URL.createObjectURL(stream);
+        //alert(videoStreamUrl);
+        // устанавливаем как источник для video 
+        video.src = videoStreamUrl;
+    }, function () {
+        console.log('что-то не так с видеостримом или пользователь запретил его использовать :P');
+    });
+
+    setInterval(captureMe, 100);
+};
+</script>
+

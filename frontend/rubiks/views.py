@@ -16,6 +16,9 @@ def do_general(request, body):
     patch_cache_control(response, max_age=0)
     return response
 
+def video_page(request):
+    return do_general(request, 'video.html')
+
 def nature_page(request):
     return do_general(request, 'nature.html')
 
