@@ -1,4 +1,8 @@
 <div>
+<div class=item>
+<button id="start">Start</button>
+<button id="stop">Stop</button>
+</div>
 <div class="item">
 <div id="fields"></div>
 <video id="video" width="320" height="240" autoplay="autoplay" hidden></video>
@@ -88,6 +92,8 @@ window.onload = function () {
     var canvas = document.getElementById('canvas');
     var video = document.getElementById('video');
     var fields = document.getElementById('fields');
+    var start = document.getElementById('start');
+    var stop = document.getElementById('stop');
     var context = canvas.getContext('2d');
     var videoStream = null, videoStreamUrl = null;
     const targetWidth = 240, targetHeight = 240;
@@ -117,6 +123,23 @@ window.onload = function () {
             var flds = drawGridAndParseFields(canvas, context, 1, 2);
             fields.innerHTML = flds;
         }
+    }
+
+    start.onclick = function() {
+        navigator.getUserMedia({video: { facingMode: "environment" }}, function (stream) {
+            videoStream = stream;
+            videoStreamUrl = window.URL.createObjectURL(stream);
+            video.src = videoStreamUrl;
+        }, function () {
+        });
+    }
+
+    stop.onclick = function() {
+        var tracks = videoStream.getTracks();
+        tracks.forEach(function(track) {
+            track.stop();
+        });
+        video.srcObject = null;
     }
 
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
