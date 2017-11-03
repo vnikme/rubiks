@@ -5,7 +5,7 @@
 </div>
 <div class="item">
 <div id="fields"></div>
-<video id="video" width="320" height="240" autoplay="autoplay" hidden></video>
+<!-- video id="video" width="320" height="240" autoplay="autoplay" hidden></video -->
 </div>
 <div class="item">
 <canvas id="canvas" width="240" height="240" ></canvas>
@@ -89,14 +89,17 @@ function drawGridAndParseFields(canvas, context, margin, thickness) {
 }
 
 window.onload = function () {
+    const targetWidth = 240, targetHeight = 240;
     var canvas = document.getElementById('canvas');
-    var video = document.getElementById('video');
+    var video = document.createElement("video");
+    video.autoPlay = true;
+    video.width = targetWidth;
+    video.height = targetHeight;
     var fields = document.getElementById('fields');
     var start = document.getElementById('start');
     var stop = document.getElementById('stop');
     var context = canvas.getContext('2d');
     var videoStream = null, videoStreamUrl = null;
-    const targetWidth = 240, targetHeight = 240;
     var videoWidth = targetWidth, videoHeight = targetHeight;
 
     // функция которая будет выполнена при нажатии на кнопку захвата кадра

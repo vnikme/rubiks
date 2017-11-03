@@ -1,9 +1,10 @@
     <div id="root"></div>
+    <div id="debug"></div>
     <script type="text/babel">
         var Button = Reactstrap.Button;
 
         const styles = {
-            square: { width: "32pt", height: "32pt", border: "2pt solid black", textAlign: "center", fontWeight: "bold", resize: "none" },
+            square: { width: "32pt", height: "32pt", border: "2pt solid black", textAlign: "center", fontWeight: "bold", resize: "none", margin: "0", padding: "0", borderCollapse: "collapse" },
             transparentSquare: { backgroundColor: "white", border: "0" },
             emptySquare: { backgroundColor: "lightgray" },
             whiteSquare: { backgroundColor: "white" },
@@ -12,7 +13,9 @@
             yellowSquare: { backgroundColor: "yellow" },
             orangeSquare: { backgroundColor: "orange" },
             blueSquare: { backgroundColor: "blue" },
-            answer: { fontWeight: "bold", fontSize: "16pt" }
+            canvas: { width: "100%", height: "100%", margin: "0", padding: "0" },
+            answer: { fontWeight: "bold", fontSize: "16pt" },
+            grid: { borderCollapse: "collapse" }
         };
 
 
@@ -64,8 +67,34 @@
             }
         }
 
+        class CanvasSquare extends React.Component {
+            componentDidMount() {
+                var ctx = this.refs.canvas.getContext('2d');
+                this.props.contexts[this.props.index] = ctx;
+            }
+            render() {
+                return ( <td style={styles.square}><canvas ref="canvas" style={styles.canvas} /></td> );
+            }
+        }
+
+
         class BaseField {
+            constructor() {
+            }
+
+            BuildReactComponent() {
+                return ( <EmptySquare /> );
+            }
+
+            MakeOnClickHandler() {
+                return function() {
+                }
+            }
+        }
+
+        class SimpleField extends BaseField {
             constructor(color, text) {
+                super();
                 this.Color = color;
                 this.Text = text;
             }
@@ -73,7 +102,7 @@
             BuildReactComponent() {
                 var handler = this.MakeOnClickHandler();
                 if (this.Color == "*")
-                    return ( <EmptySquare onClick={handler} text={this.Text}/> );
+                    return ( <EmptySquare onClick={handler} text={this.Text} /> );
                 if (this.Color == "w")
                     return ( <WhiteSquare onClick={handler} text={this.Text} /> );
                 if (this.Color == "r")
@@ -88,14 +117,9 @@
                     return ( <BlueSquare onClick={handler} text={this.Text} /> );
                 return ( <TransparentSquare text={this.Text} /> );
             }
-
-            MakeOnClickHandler() {
-                return function() {
-                }
-            }
         }
 
-        class Field extends BaseField {
+        class ClickableField extends SimpleField {
             constructor(color, index, clickHandler) {
                 super(color, "");
                 this.Index = index;
@@ -110,7 +134,7 @@
             }
         }
 
-        class CenterField extends BaseField {
+        class CenterField extends SimpleField {
             constructor(color, text, clickHandler) {
                 super(color, text);
                 this.ClickHandler = clickHandler;
@@ -124,13 +148,86 @@
             }
         }
 
+        class CanvasField extends BaseField {
+            constructor(contexts, index) {
+                super();
+                this.Contexts = contexts;
+                this.Index = index;
+            }
+
+            BuildReactComponent() {
+                return ( <CanvasSquare contexts={this.Contexts} index={this.Index} /> );
+            }
+        }
+
+
         class Game extends React.Component {
             constructor() {
                 super();
                 var fields = [];
                 for (var i = 0; i < 48; ++i)
                     fields.push("*");
-                this.state = {Fields: fields, SelectedColor: "w", Answer: "", Updater: -1};
+                this.state = {Fields: fields, SelectedColor: "w", Answer: "", Capture: false};
+                this.AnswerUpdater = -1;
+                this.CaptureUpdater = -1;
+                this.Contexts = [];
+                for (var i = 0; i < 9; ++i)
+                    this.Contexts.push(null);
+                this.Video = document.createElement("video");
+                this.Video.autoPlay = true;
+                this.Video.width = 240;
+                this.Video.height = 240;
+                navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                window.URL.createObjectURL = window.URL.createObjectURL || window.URL.webkitCreateObjectURL || window.URL.mozCreateObjectURL || window.URL.msCreateObjectURL;
+            }
+
+            StartCapture() {
+                var self = this;
+                navigator.getUserMedia({video: { facingMode: "environment" }}, function (stream) {
+                    self.VideoStream = stream;
+                    //self.VideoStreamUrl = window.URL.createObjectURL(stream);
+                    //self.Video.src = self.VideoStreamUrl;
+                    self.Video.srcObject = stream;
+                }, function () {
+                });
+                this.CaptureUpdater = setInterval(() => self.CaptureImage(), 100);
+                var state = this.state;
+                state.Capture = true;
+                this.setState(state);
+            }
+
+            StopCapture() {
+                var tracks = this.VideoStream.getTracks();
+                tracks.forEach(function(track) {
+                    track.stop();
+                });
+                this.Video.srcObject = null;
+                clearInterval(this.CaptureUpdater);
+                this.CaptureUpdater = -1;
+                var state = this.state;
+                state.Capture = false;
+                this.setState(state);
+            }
+
+            CaptureImage() {
+                if (!this.VideoStream)
+                    return;
+                for (var i = 0; i < 9; ++i) {
+                    var ctx = this.Contexts[i];
+                    var canvas = ctx.canvas;
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                    var n = 0, mx = 0, my = 0, x = i % 3, y = Math.floor(i / 3);
+                    if (this.Video.videoWidth > this.Video.videoHeight) {
+                        n = this.Video.videoHeight;
+                        mx = (this.Video.videoWidth - this.Video.videoHeight) / 2;
+                    } else {
+                        n = this.Video.videoWidth;
+                        my = (this.Video.videoHeight - this.Video.videoWidth) / 2;
+                    }
+                    var step = n / 3;
+                    ctx.drawImage(this.Video, mx + step * x, my + step * y, step, step, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
+                }
             }
 
             MakeBackendAnswerProcessor() {
@@ -142,18 +239,18 @@
                         state.Answer = js.state;
                     } else if (js.state == "fail") {
                         state.Answer = js.state;
-                        if (state.Updater != -1) {
-                            clearInterval(state.Updater);
-                            state.Updater = -1;
+                        if (self.AnswerUpdater != -1) {
+                            clearInterval(self.AnswerUpdater);
+                            self.AnswerUpdater = -1;
                         }
                     } else if (js.state == "ok") {
                         var ans = JSON.parse(js.result);
                         state.Answer = "Answer size is " + ans.length + ":";
                         for (var i = 0; i < ans.length; ++i)
                             state.Answer += (" " + ans[i]);
-                        if (state.Updater != -1) {
-                            clearInterval(state.Updater);
-                            state.Updater = -1;
+                        if (self.AnswerUpdater != -1) {
+                            clearInterval(self.AnswerUpdater);
+                            self.AnswerUpdater = -1;
                         }
                     } else {
                         state.Answer = "";
@@ -178,11 +275,9 @@
                 var doSolve = function() {
                     httpGetAsync("/solve?cube=" + cube, self.MakeBackendAnswerProcessor());
                 };
-                var state = this.state;
-                if (state.Updater != -1)
-                    clearInterval(state.Updater);
-                state.Updater = setInterval(doSolve, 500);
-                this.setState(state);
+                if (this.AnswerUpdater != -1)
+                    clearInterval(this.AnswerUpdater);
+                this.AnswerUpdater = setInterval(doSolve, 500);
             }
 
             render() {
@@ -190,7 +285,7 @@
                 for (var i = 0; i < 12; ++i) {
                     var row = [];
                     for (var j = 0; j < 10; ++j) 
-                        row.push(new BaseField(" "));
+                        row.push(new SimpleField(" "));
                     fields.push(row);
                 }
                 var selectColorHandler = (color) => {
@@ -202,25 +297,37 @@
                     var state = this.state;
                     state.Fields[index] = state.SelectedColor;
                     state.Answer = "";
-                    if (state.Updater != -1) {
-                        clearInterval(state.Updater);
-                        state.Updater = -1;
+                    if (this.AnswerUpdater != -1) {
+                        clearInterval(this.AnswerUpdater);
+                        this.AnswerUpdater = -1;
                     }
                     this.setState(state);
+                }
+                var switchCaptureHandler = () => {
+                    if (!this.state.Capture)
+                        this.StartCapture();
+                    else
+                        this.StopCapture();
                 }
                 for (var i = 0; i < 4; ++i) {
                     var adds = [[6, 3], [3, 3], [6, 6], [0, 3], [9, 3], [6, 0]];
                     var centers = "wrgyob";
                     var surfaces = "FTRBDL";
                     for (var j = 0; j < adds.length; ++j) {
-                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new Field(this.state.Fields[i + j * 8], i + j * 8, switchColorHandler);
+                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new ClickableField(this.state.Fields[i + j * 8], i + j * 8, switchColorHandler);
                         fields[adds[j][0] + 1][adds[j][1] + 1] = new CenterField(centers[j], surfaces[j], selectColorHandler);
-                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new Field(this.state.Fields[i + 4 + j * 8], i + 4 + j * 8, switchColorHandler);
+                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new ClickableField(this.state.Fields[i + 4 + j * 8], i + 4 + j * 8, switchColorHandler);
                     }
                 }
-                var selected = new BaseField(this.state.SelectedColor, "");
-                //selected = selected.BuildReactComponent();
+                var selected = new ClickableField(this.state.SelectedColor, "", switchCaptureHandler);
                 fields[1][1] = selected;
+                if (this.state.Capture) {
+                    for (var i = 0; i < 3; ++i) {
+                        for (var j = 0; j < 3; ++j) {
+                            fields[1 + i][6 + j] = new CanvasField(this.Contexts, 3 * i + j);
+                        }
+                    }
+                }
                 var rows = fields.map(function(row, i) {
                     var cells = row.map(function(cell, j) {
                         return cell.BuildReactComponent(j);
@@ -231,7 +338,7 @@
                             <div style={styles.answer}>{this.state.Answer}</div>
                             <div class="row">
                                 <div class="col-md-6 col-sm-6 col-xs-12">
-                                    <table>{rows}</table>
+                                    <table style={styles.grid}>{rows}</table>
                                 </div>
                                 <div class="col-md-6 col-sm-6 col-xs-12">
                                     <ul>
@@ -253,7 +360,6 @@
         }
 
         // ========================================
-
         ReactDOM.render(<Game />, document.getElementById("root"));
 
     </script>
