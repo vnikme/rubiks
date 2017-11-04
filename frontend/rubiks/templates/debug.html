@@ -156,7 +156,7 @@
         }
 
         function rgbToColor(r, g, b) {
-            if (r > 70 && almostSame(g, b) && r > Math.max(g, b) * 1.3)
+            if (r > 70 && almostSame(g, b) && r > Math.max(g, b) * 2)
                 return "r";
             if (r > 100 && g > b * 2 && 1.5 * g < r)
                 return "o";
