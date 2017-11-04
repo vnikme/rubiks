@@ -147,13 +147,61 @@
         }
 
 
+        function almostSame(a, b) {
+            if (a < 30 && b < 30)
+                return true;
+            if (Math.abs(a - b) < 20)
+                return true;
+            return (a >= 30 && b >= 30 && a / b < 1.2 && b / a < 1.2);
+        }
+
+        function rgbToColor(r, g, b) {
+            if (r > 70 && almostSame(g, b) && r > Math.max(g, b) * 1.3)
+                return "r";
+            if (r > 100 && g > b * 2 && 1.5 * g < r)
+                return "o";
+            if (r > 90 && r > b * 1.7 && almostSame(r, g))
+                return "y";
+            if (almostSame(r, g) && almostSame(g, b) && almostSame(r, b) && r > 70)
+                return "w";
+            if (g > 70 && g > Math.max(r, b) * 2)
+                return "g";
+            if (b > 70 && b > Math.max(r, g) + 30)
+                return "b";
+            return "*";
+        }
+
+        function colorVote(distr) {
+            var res = "*";
+            for (var key in distr) {
+                if (distr[key] > distr[res])
+                    res = key;
+            }
+            return res;
+        }
+
+        function recognizeColor(context) {
+            var idata = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            var data = idata.data;
+            var distr = {"w": 0, "r": 0, "g": 0, "y": 0, "o": 0, "b": 0, "*": 0};
+            for (var k = 0; k < data.length; k += 4) {
+                var r = data[k], g = data[k + 1], b = data[k + 2];
+                //return [r, g, b, rgbToColor(r, g, b)];
+                distr[rgbToColor(r, g, b)] += 1;
+            }
+            return colorVote(distr);
+        }
+
+
         class Game extends React.Component {
             constructor() {
                 super();
-                var fields = [];
+                var fields = [], recognized = [];
                 for (var i = 0; i < 48; ++i)
                     fields.push("*");
-                this.state = {Fields: fields, SelectedColor: "w", Answer: "", Capture: false};
+                for (var i = 0; i < 9; ++i)
+                    recognized.push("");
+                this.state = {Fields: fields, Recognized: recognized, SelectedColor: "w", SelectedSurface: 0, Answer: "", Capture: false};
                 this.AnswerUpdater = -1;
                 this.CaptureUpdater = -1;
                 this.Contexts = [];
@@ -195,6 +243,7 @@
             CaptureImage() {
                 if (!this.VideoStream)
                     return;
+                var state = this.state;
                 for (var i = 0; i < 9; ++i) {
                     var ctx = this.Contexts[i];
                     var canvas = ctx.canvas;
@@ -210,7 +259,9 @@
                     }
                     var step = n / 3;
                     ctx.drawImage(this.Video, mx + step * x, my + step * y, step, step, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
+                    state.Recognized[i] = recognizeColor(ctx);
                 }
+                this.setState(state);
             }
 
             MakeBackendAnswerProcessor() {
@@ -277,11 +328,12 @@
                 }
             }
 
-            CreateSelectColorHandler(color) {
+            CreateSelectColorHandler(color, surface) {
                 var self = this;
                 return () => {
                     var state = self.state;
                     state.SelectedColor = color;
+                    state.SelectedSurface = surface;
                     self.setState(state);
                 }
             }
@@ -295,7 +347,34 @@
                 }
             }
 
+            CreateFixRecognizedHandler() {
+                return () => {
+                    var state = this.state;
+                    for (var i = 0; i < 4; ++i) {
+                        state.Fields[state.SelectedSurface * 8 + i] = state.Recognized[i];
+                        state.Fields[state.SelectedSurface * 8 + i + 4] = state.Recognized[i + 5];
+                    }
+                    var doStop = false;
+                    if (++state.SelectedSurface >= 6) {
+                        state.SelectedSurface = 0;
+                        doStop = true;
+                    }
+                    this.setState(state);
+                    if (doStop)
+                        this.StopCapture();
+                }
+            }
+
             render() {
+                var colors = [];
+                for (var i = 0; i < 48; ++i)
+                    colors.push(this.state.Fields[i]);
+                if (this.state.Capture) {
+                    for (var i = 0; i < 4; ++i) {
+                        colors[this.state.SelectedSurface * 8 + i] = this.state.Recognized[i];
+                        colors[this.state.SelectedSurface * 8 + i + 4] = this.state.Recognized[i + 5];
+                    }
+                }
                 var fields = [];
                 for (var i = 0; i < 12; ++i) {
                     var row = [];
@@ -308,17 +387,17 @@
                     var centers = "wrgyob";
                     var surfaces = "FTRBDL";
                     for (var j = 0; j < adds.length; ++j) {
-                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new ClickableField(this.state.Fields[i + j * 8], "", this.CreateSwitchColorHandler(i + j * 8));
-                        fields[adds[j][0] + 1][adds[j][1] + 1] = new ClickableField(centers[j], surfaces[j], this.CreateSelectColorHandler(centers[j]));
-                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new ClickableField(this.state.Fields[i + 4 + j * 8], "", this.CreateSwitchColorHandler(i + 4 + j * 8));
+                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new ClickableField(colors[i + j * 8], "", this.CreateSwitchColorHandler(i + j * 8));
+                        fields[adds[j][0] + 1][adds[j][1] + 1] = new ClickableField(centers[j], surfaces[j], this.CreateSelectColorHandler(centers[j], j));
+                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new ClickableField(colors[i + 4 + j * 8], "", this.CreateSwitchColorHandler(i + 4 + j * 8));
                     }
                 }
-                fields[1][1] = new ClickableField(this.state.SelectedColor, "", this.CreateSwitchCaptureHandler());
-                fields[3][1] = new ClickableField("w", "O", this.CreateSwitchCaptureHandler());
+                fields[4][8] = new ClickableField(this.state.SelectedColor, "", this.CreateFixRecognizedHandler());
+                fields[4][6] = new ClickableField("w", "O", this.CreateSwitchCaptureHandler());
                 if (this.state.Capture) {
                     for (var i = 0; i < 3; ++i) {
                         for (var j = 0; j < 3; ++j) {
-                            fields[1 + i][6 + j] = new CanvasField(this.Contexts, 3 * i + j);
+                            fields[0 + i][6 + j] = new CanvasField(this.Contexts, 3 * i + j);
                         }
                     }
                 }
