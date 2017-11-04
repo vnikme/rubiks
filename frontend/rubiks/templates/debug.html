@@ -121,21 +121,6 @@
         }
 
         class ClickableField extends SimpleField {
-            constructor(color, index, clickHandler) {
-                super(color, "");
-                this.Index = index;
-                this.ClickHandler = clickHandler;
-            }
-
-            MakeOnClickHandler() {
-                var self = this;
-                return function() {
-                    self.ClickHandler(self.Index);
-                }
-            }
-        }
-
-        class CenterField extends SimpleField {
             constructor(color, text, clickHandler) {
                 super(color, text);
                 this.ClickHandler = clickHandler;
@@ -144,7 +129,7 @@
             MakeOnClickHandler() {
                 var self = this;
                 return function() {
-                    self.ClickHandler(self.Color);
+                    self.ClickHandler();
                 }
             }
         }
@@ -179,15 +164,12 @@
                 this.Video.width = 240;
                 this.Video.height = 240;
                 navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
-                window.URL.createObjectURL = window.URL.createObjectURL || window.URL.webkitCreateObjectURL || window.URL.mozCreateObjectURL || window.URL.msCreateObjectURL;
             }
 
             StartCapture() {
                 var self = this;
                 navigator.getUserMedia({video: { facingMode: "environment" }}, function (stream) {
                     self.VideoStream = stream;
-                    //self.VideoStreamUrl = window.URL.createObjectURL(stream);
-                    //self.Video.src = self.VideoStreamUrl;
                     self.Video.srcObject = stream;
                 }, function () {
                 });
@@ -281,6 +263,38 @@
                 this.AnswerUpdater = setInterval(doSolve, 500);
             }
 
+            CreateSwitchColorHandler(index) {
+                var self = this;
+                return () => {
+                    var state = self.state;
+                    state.Fields[index] = state.SelectedColor;
+                    state.Answer = "";
+                    if (this.AnswerUpdater != -1) {
+                        clearInterval(self.AnswerUpdater);
+                        self.AnswerUpdater = -1;
+                    }
+                    self.setState(state);
+                }
+            }
+
+            CreateSelectColorHandler(color) {
+                var self = this;
+                return () => {
+                    var state = self.state;
+                    state.SelectedColor = color;
+                    self.setState(state);
+                }
+            }
+
+            CreateSwitchCaptureHandler() {
+                return () => {
+                    if (!this.state.Capture)
+                        this.StartCapture();
+                    else
+                        this.StopCapture();
+                }
+            }
+
             render() {
                 var fields = [];
                 for (var i = 0; i < 12; ++i) {
@@ -289,39 +303,18 @@
                         row.push(new SimpleField(" "));
                     fields.push(row);
                 }
-                var selectColorHandler = (color) => {
-                    var state = this.state;
-                    state.SelectedColor = color;
-                    this.setState(state);
-                }
-                var switchColorHandler = (index) => {
-                    var state = this.state;
-                    state.Fields[index] = state.SelectedColor;
-                    state.Answer = "";
-                    if (this.AnswerUpdater != -1) {
-                        clearInterval(this.AnswerUpdater);
-                        this.AnswerUpdater = -1;
-                    }
-                    this.setState(state);
-                }
-                var switchCaptureHandler = () => {
-                    if (!this.state.Capture)
-                        this.StartCapture();
-                    else
-                        this.StopCapture();
-                }
                 for (var i = 0; i < 4; ++i) {
                     var adds = [[6, 3], [3, 3], [6, 6], [0, 3], [9, 3], [6, 0]];
                     var centers = "wrgyob";
                     var surfaces = "FTRBDL";
                     for (var j = 0; j < adds.length; ++j) {
-                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new ClickableField(this.state.Fields[i + j * 8], i + j * 8, switchColorHandler);
-                        fields[adds[j][0] + 1][adds[j][1] + 1] = new CenterField(centers[j], surfaces[j], selectColorHandler);
-                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new ClickableField(this.state.Fields[i + 4 + j * 8], i + 4 + j * 8, switchColorHandler);
+                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new ClickableField(this.state.Fields[i + j * 8], "", this.CreateSwitchColorHandler(i + j * 8));
+                        fields[adds[j][0] + 1][adds[j][1] + 1] = new ClickableField(centers[j], surfaces[j], this.CreateSelectColorHandler(centers[j]));
+                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new ClickableField(this.state.Fields[i + 4 + j * 8], "", this.CreateSwitchColorHandler(i + 4 + j * 8));
                     }
                 }
-                var selected = new ClickableField(this.state.SelectedColor, "", switchCaptureHandler);
-                fields[1][1] = selected;
+                fields[1][1] = new ClickableField(this.state.SelectedColor, "", this.CreateSwitchCaptureHandler());
+                fields[3][1] = new ClickableField("w", "O", this.CreateSwitchCaptureHandler());
                 if (this.state.Capture) {
                     for (var i = 0; i < 3; ++i) {
                         for (var j = 0; j < 3; ++j) {
