@@ -13,7 +13,8 @@
             yellowSquare: { backgroundColor: "yellow" },
             orangeSquare: { backgroundColor: "orange" },
             blueSquare: { backgroundColor: "blue" },
-            canvas: { width: "100%", height: "100%", margin: "0", padding: "0" },
+            canvasSquare: { border: "2pt solid lime" },
+            canvas: { width: "100%", height: "100%", margin: "0", padding: "0", display: "block" },
             answer: { fontWeight: "bold", fontSize: "16pt" },
             grid: { borderCollapse: "collapse" }
         };
@@ -73,7 +74,7 @@
                 this.props.contexts[this.props.index] = ctx;
             }
             render() {
-                return ( <td style={styles.square}><canvas ref="canvas" style={styles.canvas} /></td> );
+                return ( <td style={Object.assign({}, styles.square, styles.canvasSquare)}><canvas ref="canvas" style={styles.canvas} /></td> );
             }
         }
 
