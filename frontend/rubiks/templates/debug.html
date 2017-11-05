@@ -1,5 +1,5 @@
-    <div id="root"></div>
     <div id="debug"></div>
+    <div id="root"></div>
     <script type="text/babel">
         var Button = Reactstrap.Button;
 
@@ -208,7 +208,7 @@
                 for (var i = 0; i < 9; ++i)
                     this.Contexts.push(null);
                 this.Video = document.createElement("video");
-                this.Video.autoPlay = true;
+                this.Video.autoplay = true;
                 this.Video.width = 240;
                 this.Video.height = 240;
                 navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
@@ -216,10 +216,13 @@
 
             StartCapture() {
                 var self = this;
-                navigator.getUserMedia({video: { facingMode: "environment" }}, function (stream) {
+                var debug = document.getElementById("debug");
+                navigator.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }}, function (stream) {
                     self.VideoStream = stream;
                     self.Video.srcObject = stream;
-                }, function () {
+                    debug.innerHTML = "Video connected";
+                }, function (error) {
+                    debug.innerHTML = "Error: " + error;
                 });
                 this.CaptureUpdater = setInterval(() => self.CaptureImage(), 100);
                 var state = this.state;
@@ -241,8 +244,11 @@
             }
 
             CaptureImage() {
-                if (!this.VideoStream)
+                var debug = document.getElementById("debug");
+                //debug.innerHTML = this.VideoStream;
+                if (!this.Video || !this.VideoStream || this.Video.readyState == 0)
                     return;
+                debug.innerHTML = "" + this.Video.readyState + " | " + this.Video.videoWidth + ", " + this.Video.videoHeight + " | " + this.Video.width + ", " + this.Video.height;
                 var state = this.state;
                 for (var i = 0; i < 9; ++i) {
                     var ctx = this.Contexts[i];

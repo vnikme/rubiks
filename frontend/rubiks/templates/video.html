@@ -91,10 +91,13 @@ function drawGridAndParseFields(canvas, context, margin, thickness) {
 window.onload = function () {
     const targetWidth = 240, targetHeight = 240;
     var canvas = document.getElementById('canvas');
+    //var video = document.getElementById("video");
     var video = document.createElement("video");
     video.autoPlay = true;
     video.width = targetWidth;
     video.height = targetHeight;
+    //video.style.visibility = "hidden";
+    //document.body.appendChild(video);
     var fields = document.getElementById('fields');
     var start = document.getElementById('start');
     var stop = document.getElementById('stop');
