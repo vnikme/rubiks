@@ -226,7 +226,7 @@
                     }).catch(function (error) {
                         debug.innerHTML = "Error: " + error;
                     });
-                this.CaptureUpdater = setInterval(() => self.CaptureImage(), 100);
+                this.CaptureUpdater = setInterval(() => self.CaptureImage(), 50);
                 var state = this.state;
                 state.Capture = true;
                 this.setState(state);
