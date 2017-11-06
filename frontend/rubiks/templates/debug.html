@@ -211,19 +211,21 @@
                 this.Video.autoplay = true;
                 this.Video.width = 240;
                 this.Video.height = 240;
-                navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                //navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
             }
 
             StartCapture() {
                 var self = this;
                 var debug = document.getElementById("debug");
-                navigator.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }}, function (stream) {
-                    self.VideoStream = stream;
-                    self.Video.srcObject = stream;
-                    debug.innerHTML = "Video connected";
-                }, function (error) {
-                    debug.innerHTML = "Error: " + error;
-                });
+                //navigator.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }}, function (stream) {
+                navigator.mediaDevices.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }})
+                    .then(function (stream) {
+                        self.VideoStream = stream;
+                        self.Video.srcObject = stream;
+                        debug.innerHTML = "Video connected";
+                    }).catch(function (error) {
+                        debug.innerHTML = "Error: " + error;
+                    });
                 this.CaptureUpdater = setInterval(() => self.CaptureImage(), 100);
                 var state = this.state;
                 state.Capture = true;
@@ -231,11 +233,14 @@
             }
 
             StopCapture() {
-                var tracks = this.VideoStream.getTracks();
-                tracks.forEach(function(track) {
-                    track.stop();
-                });
+                if (this.VideoStream) {
+                    var tracks = this.VideoStream.getTracks();
+                    tracks.forEach(function(track) {
+                        track.stop();
+                    });
+                }
                 this.Video.srcObject = null;
+                this.VideoStream = null;
                 clearInterval(this.CaptureUpdater);
                 this.CaptureUpdater = -1;
                 var state = this.state;
