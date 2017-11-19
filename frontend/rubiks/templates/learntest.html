@@ -1,0 +1,217 @@
+        var Button = Reactstrap.Button;
+
+        function UniqueAnswersList(questions) {
+            var arr = [];
+            for (var x of questions) {
+                arr = arr.concat(x.answers);
+            }
+            arr.sort().filter((x, i, a) => !i || x != a[i-1]);
+            return arr;
+        }
+
+        const styles = {
+            question: { width: "100%" },
+            task: { color: "blue", fontWeight: "bold", fontSize: "20pt", textAlign: "center" },
+            success: { color: "green", fontWeight: "bold", fontSize: "20pt" },
+            error: { color: "red", fontWeight: "bold", fontSize: "20pt" },
+            answer: { fontSize: "20pt" },
+            next: { fontSize: "20pt" },
+            scores: { fontSize: "20pt" }
+        };
+
+
+        function RandInt(from, to) {
+            return Math.floor(Math.random() * ((to - from) + 1)) + from;
+        }
+
+
+        function RandFromDistr(distr) {
+            var rnd = Math.random();
+            var d = [];
+            for (var i = 0; i < distr.length; ++i) {
+                if (i == 0)
+                    d.push(distr[i]);
+                else
+                    d.push(distr[i] - distr[i - 1]);
+            }
+            //alert(rnd);
+            //alert(d);
+            for (var i = 0; i < distr.length; ++i) {
+                if (distr[i] >= rnd)
+                    return i;
+            }
+            return distr.length - 1;
+        }
+
+
+        function ShuffleAnswers(arr) {
+            var idx = [];
+            for (var i = 0; i < arr.length; ++i)
+                idx.push(i);
+            for (var i = idx.length - 1; i > 0; --i) {
+                var j = RandInt(0, i);
+                var t = idx[i];
+                idx[i] = idx[j];
+                idx[j] = t;
+            }
+            var result = [], answer = 0;
+            for (var i = 0; i < idx.length; ++i) {
+                result.push(arr[idx[i]]);
+                if (idx[i] == 0)
+                    answer = i;
+            }
+            return { answers: result, correct: answer };
+        }
+
+
+        function PrepareTaskWeightsDistribution(lastOccurences, lastErrors) {
+            //alert(lastOccurences);
+            //alert(lastErrors);
+            var weights = [], sum = 1e-38, n = lastOccurences.length;
+            for (var i = 0; i < n; ++i) {
+                var weight = lastOccurences[i] - n;
+                if (lastErrors[i] < 2 * n)
+                    weight += n;
+                if (weight > n)
+                    weight = n;
+                weight *= (5.0 / n);
+                weight = 1.0 / (1.0 + Math.exp(-weight));
+                sum += weight;
+                weights.push(sum);
+            }
+            for (var i = 0; i < n; ++i)
+                weights[i] /= sum;
+            return weights;
+        }
+
+
+        function PrepareRandomTask(questions, minAnswersCount, lastOccurences, lastErrors) {
+            //var idx = RandInt(0, questions.length - 1);
+            var idx = RandFromDistr(PrepareTaskWeightsDistribution(lastOccurences, lastErrors));
+            var task = questions[idx];
+            var answers = task.answers;
+            var allSet = UniqueAnswersList(questions);
+            while (answers.length < minAnswersCount) {
+                var ans = allSet[RandInt(0, allSet.length - 1)];
+                if (answers.indexOf(ans) == -1)
+                    answers.push(ans);
+            }
+            answers = ShuffleAnswers(answers);
+            return { taskIndex: idx, task: task.task, answers: answers.answers, correct: answers.correct };
+        }
+
+
+        class RandomQuestion extends React.Component {         
+            render() {
+                var self = this;
+                var task = this.props.task.task;
+                var answers = this.props.task.answers;
+                var correct = this.props.task.correct;
+                var feedback = this.props.feedback;
+                var result = answers.map(function(item, i) {
+                    var feedback_ok = "Правильно, " + answers[correct] + "!";
+                    var feedback_bad = "Неверно! Правильный ответ: " + answers[correct] + "!";
+                    if (i == correct)
+                        return (<tr><td><Button outline color="primary" size="lg" block style={styles.answer} onClick={() => self.props.OnOk(feedback_ok)}>{item}</Button></td></tr>);
+                    else
+                        return (<tr><td><Button outline color="primary" size="lg" block style={styles.answer} onClick={() => self.props.OnFail(feedback_bad)}>{item}</Button></td></tr>);
+                });
+                if (!feedback)
+                    return (<table style={styles.question}><tr><td style={styles.task}>{task}</td></tr>{result}</table>);
+                else
+                    return (<table style={styles.question}><tr><td style={styles.task}>{task}</td></tr></table>);
+            }
+        }
+
+
+        function ShiftOccurences(occurences) {
+            for (var i = 0; i < occurences.length; ++i)
+                ++occurences[i];
+        }
+
+
+        class Game extends React.Component {
+            constructor() {
+                super();
+                this.state = null;
+            }
+
+            initQuestions() {
+                this.Questions = this.props.Questions;
+                var n = this.Questions.length, occurences = [], errors = [];
+                for (var i = 0; i < n; ++i) {
+                    occurences.push(2 * n);
+                    errors.push(2 * n);
+                }
+                this.state = {
+                    task: PrepareRandomTask(this.Questions, 4, occurences, errors),
+                    feedback: "",
+                    feedbackStyle: null,
+                    correctCount: 0,
+                    totalCount: 0,
+                    lastOccurences: occurences,
+                    lastErrors: errors
+                };
+            }
+
+            OnOk(message) {
+                var state = this.state;
+                state.feedback = message;
+                state.feedbackStyle = styles.success;
+                ++state.correctCount;
+                ++state.totalCount;
+                ShiftOccurences(state.lastOccurences);
+                ShiftOccurences(state.lastErrors);
+                state.lastOccurences[state.task.taskIndex] = 0;
+                this.setState(state);
+            }
+
+            OnFail(message) {
+                var state = this.state;
+                state.feedback = message;
+                state.feedbackStyle = styles.error;
+                ++state.totalCount;
+                ShiftOccurences(state.lastOccurences);
+                ShiftOccurences(state.lastErrors);
+                state.lastOccurences[state.task.taskIndex] = 0;
+                state.lastErrors[state.task.taskIndex] = 0;
+                this.setState(state);
+            }
+
+            NextTask() {
+                var state = this.state;
+                state.task = PrepareRandomTask(this.Questions, 4, state.lastOccurences, state.lastErrors);
+                state.feedback = "";
+                state.feedbackStyle = null;
+                this.setState(state);
+            }
+
+            render() {
+                if (this.state == null) {
+                    this.initQuestions();
+                }
+                var pers = this.state.correctCount * 100.0 / (this.state.totalCount + 1e-38) + 0.5;
+                pers = Math.floor(pers);
+                return ( <div>
+                            <RandomQuestion
+                                OnOk={(message) => this.OnOk(message)}
+                                OnFail={(message) => this.OnFail(message)}
+                                task={this.state.task}
+                                feedback={this.state.feedback}
+                            />
+                            <br />
+                            {
+                                this.state.feedbackStyle != null ?
+                                <div>
+                                    <div style={this.state.feedbackStyle}>{this.state.feedback}</div>
+                                    <Button style={styles.next} color="success" onClick={() => this.NextTask()}>Далее</Button>
+                                </div> :
+                                null
+                            }
+                            <br />
+                            <div style={styles.scores}>Доля правильных ответов: {pers}% .</div>
+                        </div>
+                    );
+            }
+        }
+

@@ -1,39 +1,8 @@
 #include <algorithm>
+#include "bfs2.h"
 #include "cube.h"
-
-
-struct TG0Homomorphism {
-    using TCubeImageType = TCubeImage<9>;
-    TCubeImageType GetImage(const TCube &cube) const {
-        TCubeImageType result;
-        for (size_t i = 0; i < 9; ++i)
-            result.Data[i] = 0;
-        const auto &corners = TCube::GetAllCorners();
-        const auto &edges = TCube::GetAllEdges();
-        for (size_t i = 0; i < 24; ++i) {
-            EColor color = cube.GetColor(corners[i]);
-            if (color == C_RED || color == C_ORANGE)
-                result.Data[i / 8] |= (1 << (i % 8));
-            color = cube.GetColor(edges[i]);
-            if (color == C_RED || color == C_ORANGE)
-                result.Data[3 + i / 8] |= (1 << (i % 8));
-            if (color == C_WHITE || color == C_YELLOW) {
-                color = cube.GetColor(TCube::GetOppositeEdge(edges[i]));
-                if (color == C_GREEN || color == C_BLUE)
-                    result.Data[6 + i / 8] |= (1 << (i % 8));
-            }
-        }
-        return result;
-    }
-};
-
-
-struct TIsomorphism {
-    using TCubeImageType = TCubeImage<(TCube::NUM_FIELDS * TCube::BITS_FOR_COLORS + 7) / 8>;
-    TCubeImageType GetImage(const TCube &cube) const {
-        return cube.GetImage();
-    }
-};
+#include "kociemba.h"
+#include "kociemba_impl.h"
 
 
 TMove ReplayTurns(std::vector<ETurnExt>::const_iterator begin, std::vector<ETurnExt>::const_iterator end) {
@@ -44,7 +13,7 @@ TMove ReplayTurns(std::vector<ETurnExt>::const_iterator begin, std::vector<ETurn
 }
 
 
-std::vector<ETurnExt> ReduceSolution(const TCube &puzzle, const std::vector<ETurnExt> &solution,
+/*std::vector<ETurnExt> ReduceSolution(const TCube &puzzle, const std::vector<ETurnExt> &solution,
                                      const std::vector<TMove> &g0, TIsomorphism &iso)
 {
     std::vector<ETurnExt> result(solution);
@@ -65,20 +34,19 @@ std::vector<ETurnExt> ReduceSolution(const TCube &puzzle, const std::vector<ETur
             result = turns;
     }
     return result;
+}*/
+
+void InitKociemba() {
+    TG0Stage::Instance();
+    TG1Stage::Instance();
 }
 
-
-bool KociembaSolution(const TCube &puzzle, const TCube &target, std::vector<ETurnExt> &result) {
-    TG0Homomorphism hom;
-    TIsomorphism iso;
-    std::vector<TMove> g0, g1;
-    for (size_t i = 0; i < TE_G0_COUNT; ++i)
-        g0.push_back(TurnExt2Move(static_cast<ETurnExt>(i)));
-    for (size_t i = 0; i < TE_G1_COUNT; ++i)
-        g1.push_back(TurnExt2Move(static_cast<ETurnExt>(i)));
-    auto candidates = Solve(puzzle, target, {TMove()}, 10, 2000000, g0, hom, iso);
+bool KociembaSolution(const TCube &puzzle, std::vector<ETurnExt> &result) {
+    auto &g0 = TG0Stage::Instance();
+    auto &g1 = TG1Stage::Instance();
+    auto candidates = Solve(puzzle, {TMove()}, 1000, 12, g0, g1);
     //std::cout << "Stage 1: " << (!candidates.empty() ? Turns2Exts(candidates.front().GetTurns()).size() : 0) << std::endl;
-    auto solution = Solve(puzzle, target, candidates, 1, 4000000, g1, iso, iso);
+    auto solution = Solve(puzzle, candidates, 2, 30, g1, g1);
     //std::cout << "Stage 2: " << (!solution.empty() ? Turns2Exts(solution.front().GetTurns()).size() : 0) << std::endl;
     if (solution.empty())
         return false;

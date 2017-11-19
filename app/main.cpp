@@ -5,9 +5,9 @@
 #include <kociemba.h>
 
 
-bool RunTest(const TCube &puzzle, const TCube &target) {
+bool RunTest(const TCube &puzzle) {
     std::vector<ETurnExt> solution;
-    if (!KociembaSolution(puzzle, target, solution))
+    if (!KociembaSolution(puzzle, solution))
         return false;
     std::cout << "Answer contains " << solution.size() << " moves" << std::endl << "Solution is:";
     TMove move;
@@ -16,7 +16,7 @@ bool RunTest(const TCube &puzzle, const TCube &target) {
         std::cout << " " << TurnExt2String(turn);
     }
     std::cout << std::endl;
-    return (move.Act(puzzle) == target);
+    return (move.Act(puzzle) == MakeSolvedCube());
 }
 
 void RunTests() {
@@ -37,11 +37,10 @@ void RunTests() {
         "rbobrgoo oyrobyrg ywwwgygr rywgwwrg oybyrggb bwbooybw"
     };
     size_t ok = 0, total = 0;
-    TCube zero = MakeSolvedCube();
     for (const auto &test : tests) {
         std::cout << "Testing " << test << std::endl;
         TCube puzzle = MakePuzzle(test);
-        bool result = RunTest(puzzle, zero);
+        bool result = RunTest(puzzle);
         std::cout << "Solution is " << (!result ? "NOT " : "") << "correct" << std::endl << std::endl;
         if (result)
             ++ok;

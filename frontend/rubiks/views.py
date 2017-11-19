@@ -19,6 +19,12 @@ def do_general(request, body):
 def nature_page(request):
     return do_general(request, 'nature.html')
 
+def authors_page(request):
+    return do_general(request, 'authors.html')
+
+def poetry_page(request):
+    return do_general(request, 'poetry.html')
+
 def debug_page(request):
     return do_general(request, 'debug.html')
 

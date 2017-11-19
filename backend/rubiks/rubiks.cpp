@@ -44,6 +44,7 @@ void TRubiks::Init(const Json::Value &data)
 }
 
 void TRubiks::Run() {
+    InitKociemba();
     MainThread = std::thread([this]() {
         MainThreadMethod();
     });
@@ -128,10 +129,9 @@ bool TRubiks::Solve(const TUrlCgiParams &params, Json::Value &data) {
         auto *solutions = &Solutions;
         SolverPool->AddEvent([cube, mtx, solutions]() {
             try {
-                TCube zero = MakeSolvedCube();
                 TCube puzzle = MakePuzzle(cube);
                 std::vector<ETurnExt> solution;
-                if (!KociembaSolution(puzzle, zero, solution))
+                if (!KociembaSolution(puzzle, solution))
                     throw std::logic_error("no solution");
                 std::stringstream str;
                 str << "[";

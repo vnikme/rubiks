@@ -45,13 +45,16 @@ link_directories(
 )
 
 set(HDRS
+    bfs2.h
     cube.h
     kociemba.h
+    kociemba_impl.h
 )
 
 set(SRCS
     cube.cpp
     kociemba.cpp
+    kociemba_impl.cpp
 )
 
 add_library(${TARGET_FILE_NAME} ${HDRS} ${SRCS})

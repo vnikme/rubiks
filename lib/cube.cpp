@@ -24,12 +24,27 @@ TCubeImage<(TCube::NUM_FIELDS * TCube::BITS_FOR_COLORS + 7) / 8> TCube::GetImage
 }
 
 const std::vector<size_t> &TCube::GetAllCorners() {
-    static std::vector<size_t> Corners = {24, 26, 29, 31, 8, 10, 13, 15, 40, 42, 45, 47, 0, 2, 5, 7, 16, 18, 21, 23, 32, 34, 37, 39};
+    // r/o, w/y, g/b
+    static std::vector<size_t> Corners = { 13, 0, 42,  15, 2, 16,  8, 29, 40,  10, 31, 18,
+                                           32, 5, 47,  34, 7, 21,  37, 24, 45,  39, 26, 23 };
     return Corners;
 }
 
 const std::vector<size_t> &TCube::GetAllEdges() {
-    static std::vector<size_t> Edges = {25, 27, 28, 30, 9, 11, 12, 14, 41, 43, 44, 46, 1, 3, 4, 6, 17, 19, 20, 22, 33, 35, 36, 38};
+    static std::vector<size_t> Edges = { 14, 1,  9, 30,  33, 6,  38, 25,
+                                         11, 41,  12, 17,  35, 46,  36, 22,
+                                         44, 3,  19, 4,  43, 27,  20, 28 };
+    return Edges;
+}
+
+const std::vector<size_t> &TCube::GetTopBottomEdges() {
+    static std::vector<size_t> Edges = { 14, 1,  9, 30,  33, 6,  38, 25,
+                                         11, 41,  12, 17,  35, 46,  36, 22, };
+    return Edges;
+}
+
+const std::vector<size_t> &TCube::GetMiddleEdges() {
+    static std::vector<size_t> Edges = { 44, 3,  19, 4,  43, 27,  20, 28 };
     return Edges;
 }
 
@@ -72,19 +87,24 @@ void TCube::SetBit(size_t bit, size_t value) {
 
 
 // TMove
-TMove::TMove() {
+TMove::TMove()
+    : TurnsCount(0)
+{
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = i;
 }
 
-TMove::TMove(ETurn id, const size_t permutation[NUM_FIELDS]) {
+TMove::TMove(ETurn id, const size_t permutation[NUM_FIELDS])
+    : TurnsCount(1)
+{
     Turns.push_back(id);
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = permutation[i];
-    TurnsCount = 1;
 }
 
-TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles) {
+TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles)
+    : TurnsCount(1)
+{
     Turns.push_back(id);
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = i;
@@ -95,7 +115,6 @@ TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles) {
             Permutation[from] = to;
         }
     }
-    TurnsCount = 1;
 }
 
 TMove TMove::CloneAsOneMove() const {
@@ -183,7 +202,7 @@ bool TMove::operator < (const TMove &rgt) const {
 
 static std::vector<TMove> CreateAllMoves() {
     std::vector<TMove> moves;
-    moves.reserve(TE_G0_COUNT);
+    moves.reserve(18);
     TMove f(T_FRONT, {{0, 2, 7, 5}, {1, 4, 6, 3}, {13, 16, 34, 47}, {14, 19, 33, 44}, {15, 21, 32, 42}});
     TMove u(T_UP, {{8, 10, 15, 13}, {9, 12, 14, 11}, {29, 18, 2, 42}, {30, 17, 1, 41}, {31, 16, 0, 40}});
     TMove r(T_RIGHT, {{16, 18, 23, 21}, {17, 20, 22, 19}, {15, 31, 39, 7}, {12, 28, 36, 4}, {10, 26, 34, 2}});
