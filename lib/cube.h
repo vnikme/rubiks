@@ -136,15 +136,17 @@ class TMove {
         TMove &operator *= (const TMove &rgt);
         TMove &operator /= (const TMove &rgt);
         TCube Act(const TCube &cube) const;
-        const std::vector<ETurn> &GetTurns() const;
+        std::vector<ETurn> GetTurns() const;
         size_t GetTurnsCount() const;
         bool operator != (const TMove &rgt) const;
         bool operator < (const TMove &rgt) const;
 
     private:
-        std::vector<ETurn> Turns;
+        std::vector<bool> Turns;
         unsigned char Permutation[NUM_FIELDS];
         size_t TurnsCount = 0;
+
+        void AddTurn(ETurn turn);
 };
 TMove operator * (TMove lft, const TMove &rgt);
 TMove operator / (TMove lft, const TMove &rgt);

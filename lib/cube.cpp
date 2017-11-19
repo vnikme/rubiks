@@ -97,7 +97,7 @@ TMove::TMove()
 TMove::TMove(ETurn id, const size_t permutation[NUM_FIELDS])
     : TurnsCount(1)
 {
-    Turns.push_back(id);
+    AddTurn(id);
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = permutation[i];
 }
@@ -105,7 +105,7 @@ TMove::TMove(ETurn id, const size_t permutation[NUM_FIELDS])
 TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles)
     : TurnsCount(1)
 {
-    Turns.push_back(id);
+    AddTurn(id);
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = i;
     for (const auto &cycle : cycles) {
@@ -124,7 +124,7 @@ TMove TMove::CloneAsOneMove() const {
 }
 
 TMove &TMove::operator *= (const TMove &rgt) {
-    std::vector<ETurn> turns(std::move(Turns));
+    std::vector<bool> turns(std::move(Turns));
     turns.insert(turns.end(), rgt.Turns.begin(), rgt.Turns.end());
     Turns.swap(turns);
     unsigned char permutation[NUM_FIELDS];
@@ -137,12 +137,14 @@ TMove &TMove::operator *= (const TMove &rgt) {
 }
 
 TMove &TMove::operator /= (const TMove &rgt) {
-    std::vector<ETurn> turns(std::move(Turns));
+    std::vector<bool> turns(std::move(Turns));
     Turns.clear();
-    Turns.reserve(rgt.Turns.size() * 3);
-    for (auto turn : rgt.Turns) {
-        for (size_t i = 0; i < 3; ++i)
-            Turns.push_back(turn);
+    for (size_t i = 0; i < rgt.Turns.size(); i += 3) {
+        for (size_t j = 0; j < 3; ++j) {                    // 3 == -1, so repeat 3 times
+            for (size_t k = 0; k < 3; ++k) {                // 3 == number of bits in ETurn representation
+                Turns.push_back(rgt.Turns[i + 2 - k]);
+            }
+        }
     }
     turns.insert(turns.end(), Turns.rbegin(), Turns.rend());
     Turns.swap(turns);
@@ -176,8 +178,25 @@ TCube TMove::Act(const TCube &cube) const {
     return result;
 }
 
-const std::vector<ETurn> &TMove::GetTurns() const {
-    return Turns;
+std::vector<ETurn> TMove::GetTurns() const {
+    std::vector<ETurn> result;
+    for (size_t i = 0; i < Turns.size(); i += 3) {
+        int turn = 0;
+        for (size_t j = 0; j < 3; ++j) {
+            turn *= 2;
+            if (Turns[i + j]) {
+                turn += 1;
+            }
+        }
+        result.push_back(static_cast<ETurn>(turn));
+    }
+    return result;
+}
+
+void TMove::AddTurn(ETurn turn) {
+    for (size_t i = 0; i < 3; ++i) {
+        Turns.push_back((turn & (1 << (2 - i))) ? true : false);
+    }
 }
 
 size_t TMove::GetTurnsCount() const {

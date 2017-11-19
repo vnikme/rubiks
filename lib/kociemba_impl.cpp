@@ -273,10 +273,10 @@ void TG0Stage::Init() {
     if (!AllowedMoves.empty())
         return;
     FillAllowedMoves();
-    FillReachedPositions();
     TG0CornersEstimator::Instance(GetAllowedMoves());
     TG0EdgeEstimator::Instance(GetAllowedMoves());
     TG0MiddleLayerEdgesEstimator::Instance(GetAllowedMoves());
+    FillReachedPositions();
 }
 
 void TG0Stage::FillAllowedMoves() {
@@ -288,7 +288,7 @@ void TG0Stage::FillAllowedMoves() {
 }
 
 void TG0Stage::FillReachedPositions() {
-    PlainBFS(*this, ReachedPositions, 6);
+    PlainBFS(*this, ReachedPositions, 7);
     std::cout << ReachedPositions.size() << std::endl;
 }
 
@@ -505,10 +505,10 @@ void TG1Stage::Init() {
     if (!AllowedMoves.empty())
         return;
     FillAllowedMoves();
-    FillReachedPositions();
     TG1CornersEstimator::Instance(GetAllowedMoves());
     TG1EdgeEstimator::Instance(GetAllowedMoves());
     TG1MiddleLayerEdgesEstimator::Instance(GetAllowedMoves());
+    FillReachedPositions();
 }
 
 void TG1Stage::FillAllowedMoves() {

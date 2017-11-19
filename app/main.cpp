@@ -51,6 +51,7 @@ void RunTests() {
 
 
 int main() {
+    InitKociemba();
     RunTests();
     return 0;
 }
