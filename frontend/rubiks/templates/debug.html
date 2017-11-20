@@ -218,7 +218,7 @@
                 var self = this;
                 var debug = document.getElementById("debug");
                 //navigator.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }}, function (stream) {
-                navigator.mediaDevices.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }})
+                navigator.mediaDevices.getUserMedia({video: { facingMode: "environment", width: { min: 120, max: 2048 }, height: { min: 120, max: 2048 } }})
                     .then(function (stream) {
                         self.VideoStream = stream;
                         self.Video.srcObject = stream;
