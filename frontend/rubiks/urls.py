@@ -22,5 +22,6 @@ urlpatterns = [
     url(r'^debug.*', rubiks.views.debug_page),
     url(r'^video.*', rubiks.views.video_page),
     url(r'^solve.*', rubiks.views.solve_page),
+    url(r'^log.*', rubiks.views.log_page),
     url(r'^.*', rubiks.views.main_page),
 ]
