@@ -201,7 +201,7 @@
                     fields.push("*");
                 for (var i = 0; i < 9; ++i)
                     recognized.push("");
-                this.state = {Fields: fields, Recognized: recognized, SelectedColor: "w", SelectedSurface: 0, Answer: "", Capture: false};
+                this.state = {Fields: fields, Recognized: recognized, SelectedColor: "w", SelectedSurface: 0, Answer: "", Capture: false, CapturedData: null, SessionId: this.GenerateSessionId()};
                 this.AnswerUpdater = -1;
                 this.CaptureUpdater = -1;
                 this.Contexts = [];
@@ -221,6 +221,27 @@
             componentDidMount() {
                 this.Context = this.Canvas.getContext('2d');
                 //document.body.appendChild(this.Canvas);
+            }
+
+            GenerateSessionId() {
+                var d = new Date().getTime();
+                if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+                    d += performance.now(); //use high-precision timer if available
+                }
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = (d + Math.random() * 16) % 16 | 0;
+                    d = Math.floor(d / 16);
+                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                });
+            }
+
+            LogEvent(tp, event) {
+                event = Object.assign({}, event);
+                event["type"] = tp;
+                event["session_id"] = this.state.SessionId;
+                event["fields"] = this.state.Fields;
+                event = btoa(JSON.stringify(event));
+                httpPostAsync("/log", event, (response) => {});
             }
 
             StartCapture() {
@@ -272,7 +293,7 @@
                     }
                     data.push(row);
                 }
-                return { "data": data };
+                return data;
             }
 
             CaptureImage() {
@@ -299,12 +320,8 @@
                     ctx.drawImage(this.Video, mx + step * x, my + step * y, step, step, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
                     state.Recognized[i] = recognizeColor(ctx);
                 }
+                state.CapturedData = this.ExtractImageData(mx, my, n);
                 this.setState(state);
-                var data = btoa(JSON.stringify(this.ExtractImageData(mx, my, n)));
-                var debug = document.getElementById("debug");
-                httpPostAsync("/log", data, (response) => {});
-                //httpPostAsync("https://rubiks.io/log", data, (response) => {});
-                //debug.innerHTML = data;
             }
 
             MakeBackendAnswerProcessor() {
@@ -329,6 +346,7 @@
                             clearInterval(self.AnswerUpdater);
                             self.AnswerUpdater = -1;
                         }
+                        state.SessionId = this.GenerateSessionId();
                     } else {
                         state.Answer = "";
                     }
@@ -393,6 +411,7 @@
             CreateFixRecognizedHandler() {
                 return () => {
                     var state = this.state;
+                    this.LogEvent("fix_recognized", { "recognized": state.Recognized, "selected": state.SelectedSurface, "data": state.CapturedData });
                     for (var i = 0; i < 4; ++i) {
                         state.Fields[state.SelectedSurface * 8 + i] = state.Recognized[i];
                         state.Fields[state.SelectedSurface * 8 + i + 4] = state.Recognized[i + 5];
@@ -469,7 +488,8 @@
                                 </div>
                             </div><br />
                             <div>
-                                <Button color="primary" onClick={() => this.Solve()}>Solve</Button><br /><br />
+                                <Button color="primary" onClick={() => this.Solve()}>Solve</Button>&nbsp;
+                                <Button color="primary" onClick={() => { window.location = '/debug' }}>Clear</Button><br /><br />
                             </div>
                         </div>);
             }
