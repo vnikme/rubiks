@@ -202,6 +202,7 @@
                 for (var i = 0; i < 9; ++i)
                     recognized.push("");
                 this.state = {Fields: fields, Recognized: recognized, SelectedColor: "w", SelectedSurface: 0, Answer: "", Capture: false, CapturedData: null, SessionId: this.GenerateSessionId()};
+                this.LogEvent("start", {});
                 this.AnswerUpdater = -1;
                 this.CaptureUpdater = -1;
                 this.Contexts = [];
@@ -238,6 +239,7 @@
             LogEvent(tp, event) {
                 event = Object.assign({}, event);
                 event["type"] = tp;
+                event["client_timestamp"] = Date.now();
                 event["session_id"] = this.state.SessionId;
                 event["fields"] = this.state.Fields;
                 event = btoa(JSON.stringify(event));
@@ -245,6 +247,7 @@
             }
 
             StartCapture() {
+                this.LogEvent("start_capture", {});
                 var self = this;
                 var debug = document.getElementById("debug");
                 //navigator.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }}, function (stream) {
@@ -263,6 +266,7 @@
             }
 
             StopCapture() {
+                this.LogEvent("stop_capture", {});
                 if (this.VideoStream) {
                     var tracks = this.VideoStream.getTracks();
                     tracks.forEach(function(track) {
@@ -331,7 +335,9 @@
                     var js = JSON.parse(response);
                     if (js.state == "pending") {
                         state.Answer = js.state;
+                        self.LogEvent("answer", { "state": "pending" });
                     } else if (js.state == "fail") {
+                        self.LogEvent("answer", { "state": "fail" });
                         state.Answer = js.state;
                         if (self.AnswerUpdater != -1) {
                             clearInterval(self.AnswerUpdater);
@@ -339,6 +345,7 @@
                         }
                     } else if (js.state == "ok") {
                         var ans = JSON.parse(js.result);
+                        self.LogEvent("answer", { "state": "ok", "answer": ans });
                         state.Answer = "Answer size is " + ans.length + ":";
                         for (var i = 0; i < ans.length; ++i)
                             state.Answer += (" " + ans[i]);
@@ -365,6 +372,7 @@
                     }
                     cube += this.state.Fields[i];
                 }
+                this.LogEvent("solve", { "cube": cube });
                 //cube = "wywggoorobybboorgrrrybgowwbwryygywyowrbwgogrybgb";
                 var self = this;
                 var doSolve = function() {
@@ -379,6 +387,7 @@
                 var self = this;
                 return () => {
                     var state = self.state;
+                    self.LogEvent("switch_color", { "selected_color": state.SelectedColor, "selected_surface": state.SelectedSurface, "index": index });
                     state.Fields[index] = state.SelectedColor;
                     state.Answer = "";
                     if (this.AnswerUpdater != -1) {
@@ -393,6 +402,7 @@
                 var self = this;
                 return () => {
                     var state = self.state;
+                    self.LogEvent("select_color", { "selected_color": color, "selected_surface": surface });
                     state.SelectedColor = color;
                     state.SelectedSurface = surface;
                     self.setState(state);
@@ -411,7 +421,7 @@
             CreateFixRecognizedHandler() {
                 return () => {
                     var state = this.state;
-                    this.LogEvent("fix_recognized", { "recognized": state.Recognized, "selected": state.SelectedSurface, "data": state.CapturedData });
+                    this.LogEvent("fix_recognized", { "recognized": state.Recognized, "selected_color": state.SelectedColor, "selected_surface": state.SelectedSurface, "data": state.CapturedData });
                     for (var i = 0; i < 4; ++i) {
                         state.Fields[state.SelectedSurface * 8 + i] = state.Recognized[i];
                         state.Fields[state.SelectedSurface * 8 + i + 4] = state.Recognized[i + 5];
