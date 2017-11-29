@@ -84,7 +84,7 @@ void TRubiks::ProcessHTTP(TSessionPtr session, THTTPRequestPtr req) {
     } else if (resource == "/solve") {
         result = Solve(params, data);
     } else if (resource == "/log") {
-        result = LogEvent(params, data);
+        result = LogEvent(req->GetBodyStr(), data);
     } else {
         result = false;
     }
@@ -114,7 +114,7 @@ class TPrintHandler : public THTTPReplyHandler {
 void TRubiks::MainThreadMethod() {
     for (; ;) {
         std::unique_lock<std::mutex> lk(Mutex);
-        if (!Exit && LogRecords.empty())
+        if (!Exit && LogRecords.size() < LogFillingThreshold && LogLastFlushingTime + LogFlushInterval >= time(nullptr))
             Condition.wait_for(lk, std::chrono::milliseconds(100));
         if (LogRecords.size() >= LogFillingThreshold || LogLastFlushingTime + LogFlushInterval < time(nullptr))
             FlushLog();
@@ -175,14 +175,7 @@ bool TRubiks::Solve(const TUrlCgiParams &params, Json::Value &data) {
     return true;
 }
 
-bool TRubiks::LogEvent(const TUrlCgiParams &params, Json::Value &data) {
-    if (params.empty())
-        return false;
-    std::string event;
-    for (const auto &param : params) {
-        if (param.first == "data")
-            event = param.second;
-    }
+bool TRubiks::LogEvent(const std::string &event, Json::Value &data) {
     if (event.empty())
         return false;
     std::unique_lock<std::mutex> lk(Mutex);

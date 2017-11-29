@@ -60,7 +60,7 @@ def Log(data):
         data = json.loads(base64.b64decode(data))
         data["server_timestamp"] = ts
         data = base64.b64encode(json.dumps(data))
-        conn.request("GET", "/log?data=%s" % data, None)
+        conn.request("POST", "/log", data)
         res = conn.getresponse()
         if res.status != 200:
             return None
@@ -69,8 +69,9 @@ def Log(data):
         return None
 
 
+@csrf_exempt
 def log_page(request):
-    data = request.GET.get("data", "")
+    data = request.body
     answer = Log(data)
     if not answer:
         answer = """{"state": "fail", "message": "could not reach backend or bad parameters"}"""

@@ -211,7 +211,16 @@
                 this.Video.autoplay = true;
                 this.Video.width = 240;
                 this.Video.height = 240;
+                this.Canvas = document.createElement("canvas");
+                this.Canvas.width = 240;
+                this.Canvas.height = 240;
+                //this.Canvas.style.display = 'none';
                 //navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+            }
+
+            componentDidMount() {
+                this.Context = this.Canvas.getContext('2d');
+                //document.body.appendChild(this.Canvas);
             }
 
             StartCapture() {
@@ -248,6 +257,24 @@
                 this.setState(state);
             }
 
+            ExtractImageData(mx, my, n) {
+                var w = this.Canvas.width, h = this.Canvas.height;
+                this.Context.drawImage(this.Video, mx, my, n, n, 0, 0, w, h);
+                var id = this.Context.getImageData(0, 0, w, h);
+                var data = [];
+                for (var i = 0; i < h; ++i) {
+                    var row = [];
+                    for (var j = 0; j < w; ++j) {
+                        var rgb = [];
+                        for (var k = 0; k < 4; ++k)
+                            rgb.push(id.data[i * w * 4 + j * 4 + k]);
+                        row.push(rgb);
+                    }
+                    data.push(row);
+                }
+                return { "data": data };
+            }
+
             CaptureImage() {
                 var debug = document.getElementById("debug");
                 //debug.innerHTML = this.VideoStream;
@@ -273,6 +300,11 @@
                     state.Recognized[i] = recognizeColor(ctx);
                 }
                 this.setState(state);
+                var data = btoa(JSON.stringify(this.ExtractImageData(mx, my, n)));
+                var debug = document.getElementById("debug");
+                httpPostAsync("/log", data, (response) => {});
+                //httpPostAsync("https://rubiks.io/log", data, (response) => {});
+                //debug.innerHTML = data;
             }
 
             MakeBackendAnswerProcessor() {

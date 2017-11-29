@@ -46,7 +46,7 @@ class TRubiks : private boost::noncopyable {
         void MainThreadMethod();
         bool Stop();
         bool Solve(const TUrlCgiParams &params, Json::Value &data);
-        bool LogEvent(const TUrlCgiParams &params, Json::Value &data);
+        bool LogEvent(const std::string &event, Json::Value &data);
         void FlushLog();
 };
 
