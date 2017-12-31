@@ -121,6 +121,7 @@ void TRubiks::MainThreadMethod() {
         if (Exit)
             return;
     }
+    std::cout << "End of MainThreadMethod" << std::endl;
 }
 
 bool TRubiks::Solve(const TUrlCgiParams &params, Json::Value &data) {

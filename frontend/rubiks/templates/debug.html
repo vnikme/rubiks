@@ -1,6 +1,7 @@
     <div id="debug"></div>
     <div id="root"></div>
     <script type="text/babel">
+        {% include 'model.html' %}
         var Button = Reactstrap.Button;
 
         const styles = {
@@ -180,9 +181,11 @@
             return res;
         }
 
-        function recognizeColor(context) {
+/*        function recognizeColor(context) {
             var idata = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
             var data = idata.data;
+            var debug = document.getElementById("debug");
+            debug.innerHTML = extractFieldFeatures(data);
             var distr = {"w": 0, "r": 0, "g": 0, "y": 0, "o": 0, "b": 0, "*": 0};
             for (var k = 0; k < data.length; k += 4) {
                 var r = data[k], g = data[k + 1], b = data[k + 2];
@@ -190,6 +193,79 @@
                 distr[rgbToColor(r, g, b)] += 1;
             }
             return colorVote(distr);
+        }*/
+
+        function meanAndVariance(data) {
+            var s = 0.0, s2 = 0.0, n = data.length;
+            data.forEach ((x) => {
+                s += x;
+                s2 += x * x;
+            });
+            return [s / n, Math.sqrt(s2 / n - s / n * s / n + 1e-10)];
+        }
+
+        function extractFeaturesFromArray(data) {
+            data = data.sort((a, b) => (a - b));
+            return [data[100], data[200], data[300], data[400]].concat(meanAndVariance(data));
+        }
+
+        function extractFieldFeatures(data) {
+            var r = [], g = [], b = [];
+            for (var i = 0; i < 500; ++i) {
+                var k = Math.floor(Math.random() * data.length / 4) * 4;
+                r.push(data[k]);
+                g.push(data[k + 1]);
+                b.push(data[k + 2]);
+            }
+            var result = [];
+            result = result.concat(extractFeaturesFromArray(r));
+            result = result.concat(extractFeaturesFromArray(g));
+            result = result.concat(extractFeaturesFromArray(b));
+            return result;
+        }
+
+        function calculateModel(model, features) {
+            var result = 0.0;
+            for (var treeIndex = 0; treeIndex < model.Trees.length; ++treeIndex) {
+                var tree = model.Trees[treeIndex];
+                var answerIndex = 0;
+                for (var level = 0; level < tree.FeatureIndexes.length; ++level) {
+                    answerIndex *= 2;
+                    if (features[tree.FeatureIndexes[level]] >= tree.Thresholds[level])
+                        answerIndex += 1;
+                }
+                result += tree.Answers[answerIndex];
+            }
+            return result;
+        }
+
+        function oneHot(hit, classCount) {
+            var result = [];
+            for (var i = 0; i < classCount; ++i)
+                result.push(i == hit ? 1.0 : 0.0);
+            return result;
+        }
+
+        function calculateMulticlass(model, classCount, features) {
+            var result = -1, bestValue = -1e+38;
+            for (var i = 0; i < classCount; ++i) {
+                var value = calculateModel(model, oneHot(i, classCount).concat(features));
+                if (value > bestValue) {
+                    result = i;
+                    bestValue = value;
+                }
+            }
+            return result;
+        }
+
+        function recognizeColor(context) {
+            var idata = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            var data = idata.data;
+            //var debug = document.getElementById("debug");
+            var features = extractFieldFeatures(data);
+            //debug.inerHTML = features;
+            var colorIndex = calculateMulticlass(model, 6, features);
+            return ["w", "r", "g", "y", "o", "b"][colorIndex];
         }
 
 
