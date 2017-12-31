@@ -285,18 +285,26 @@
                 for (var i = 0; i < 9; ++i)
                     this.Contexts.push(null);
                 this.Video = document.createElement("video");
-                this.Video.autoplay = true;
+                this.Video.setAttribute("autoplay", "");
+                this.Video.setAttribute("muted", "");
+                this.Video.setAttribute("playsinline", "");
                 this.Video.width = 240;
                 this.Video.height = 240;
                 this.Canvas = document.createElement("canvas");
                 this.Canvas.width = 240;
                 this.Canvas.height = 240;
                 //this.Canvas.style.display = 'none';
-                //navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                //if (navigator.mediaDevices == null) {
+                //    alert(navigator.getUserMedia);
+                //    navigator.mediaDevices = {};
+                //    navigator.mediaDevices.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                //    alert(navigator.mediaDevices.getUserMedia);
+                //}
             }
 
             componentDidMount() {
                 this.Context = this.Canvas.getContext('2d');
+                //document.body.appendChild(this.Video);
                 //document.body.appendChild(this.Canvas);
             }
 
@@ -326,19 +334,30 @@
                 this.LogEvent("start_capture", {});
                 var self = this;
                 var debug = document.getElementById("debug");
-                //navigator.getUserMedia({video: { facingMode: "environment", width: 240, height: 240 }}, function (stream) {
+                var onSuccess = function (stream) {
+                    self.VideoStream = stream;
+                    self.Video.srcObject = stream;
+                    self.Video.play();
+                    //debug.innerHTML = "Video connected";
+                    self.CaptureUpdater = setInterval(() => self.CaptureImage(), 50);
+                    var state = self.state;
+                    state.Capture = true;
+                    self.setState(state);
+                }
+                var onError = function (error) {
+                    debug.innerHTML = "Error: " + error;
+                }
                 navigator.mediaDevices.getUserMedia({video: { facingMode: "environment", width: { min: 120, max: 2048 }, height: { min: 120, max: 2048 } }})
                     .then(function (stream) {
-                        self.VideoStream = stream;
-                        self.Video.srcObject = stream;
-                        debug.innerHTML = "Video connected";
-                    }).catch(function (error) {
-                        debug.innerHTML = "Error: " + error;
+                        onSuccess(stream);
+                    }).catch(function (e) {
+                        navigator.mediaDevices.getUserMedia({video: { facingMode: "environment", width: 640, height: 480 }})
+                            .then(function (stream) {
+                                onSuccess(stream);
+                            }).catch(function (error) {
+                                onError(error);
+                            });
                     });
-                this.CaptureUpdater = setInterval(() => self.CaptureImage(), 50);
-                var state = this.state;
-                state.Capture = true;
-                this.setState(state);
             }
 
             StopCapture() {
@@ -381,7 +400,7 @@
                 //debug.innerHTML = this.VideoStream;
                 if (!this.Video || !this.VideoStream || this.Video.readyState == 0)
                     return;
-                debug.innerHTML = "" + this.Video.readyState + " | " + this.Video.videoWidth + ", " + this.Video.videoHeight + " | " + this.Video.width + ", " + this.Video.height;
+                //debug.innerHTML = "" + this.Video.readyState + " | " + this.Video.videoWidth + ", " + this.Video.videoHeight + " | " + this.Video.width + ", " + this.Video.height;
                 var state = this.state;
                 for (var i = 0; i < 9; ++i) {
                     var ctx = this.Contexts[i];
@@ -397,6 +416,7 @@
                         my = (this.Video.videoHeight - this.Video.videoWidth) / 2;
                     }
                     var step = n / 3;
+                    //debug.innerHTML = canvas.width + ", " + canvas.height;
                     ctx.drawImage(this.Video, mx + step * x, my + step * y, step, step, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
                     state.Recognized[i] = recognizeColor(ctx);
                 }
