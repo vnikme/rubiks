@@ -44,7 +44,7 @@ void InitKociemba() {
 bool KociembaSolution(const TCube &puzzle, std::vector<ETurnExt> &result) {
     auto &g0 = TG0Stage::Instance();
     auto &g1 = TG1Stage::Instance();
-    auto candidates = Solve(puzzle, {TMove()}, 1000, 12, g0, g1);
+    auto candidates = Solve(puzzle, {TMove()}, 100, 12, g0, g1);
     //std::cout << "Stage 1: " << (!candidates.empty() ? Turns2Exts(candidates.front().GetTurns()).size() : 0) << std::endl;
     auto solution = Solve(puzzle, candidates, 2, 30, g1, g1);
     //std::cout << "Stage 2: " << (!solution.empty() ? Turns2Exts(solution.front().GetTurns()).size() : 0) << std::endl;

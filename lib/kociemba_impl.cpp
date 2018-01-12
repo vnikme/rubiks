@@ -288,7 +288,7 @@ void TG0Stage::FillAllowedMoves() {
 }
 
 void TG0Stage::FillReachedPositions() {
-    PlainBFS(*this, ReachedPositions, 7);
+    PlainBFS(*this, ReachedPositions, 6);
     std::cout << ReachedPositions.size() << std::endl;
 }
 
