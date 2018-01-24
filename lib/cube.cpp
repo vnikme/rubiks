@@ -88,14 +88,16 @@ void TCube::SetBit(size_t bit, size_t value) {
 
 // TMove
 TMove::TMove()
-    : TurnsCount(0)
+    : TotalTurnsCount(0)
+    , LastStageTurnsCount(0)
 {
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = i;
 }
 
 TMove::TMove(ETurn id, const size_t permutation[NUM_FIELDS])
-    : TurnsCount(1)
+    : TotalTurnsCount(1)
+    , LastStageTurnsCount(1)
 {
     AddTurn(id);
     for (size_t i = 0; i < NUM_FIELDS; ++i)
@@ -103,7 +105,8 @@ TMove::TMove(ETurn id, const size_t permutation[NUM_FIELDS])
 }
 
 TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles)
-    : TurnsCount(1)
+    : TotalTurnsCount(1)
+    , LastStageTurnsCount(1)
 {
     AddTurn(id);
     for (size_t i = 0; i < NUM_FIELDS; ++i)
@@ -119,7 +122,8 @@ TMove::TMove(ETurn id, const std::vector<std::vector<size_t>> &cycles)
 
 TMove TMove::CloneAsOneMove() const {
     TMove result(*this);
-    result.TurnsCount = 1;
+    result.TotalTurnsCount = 1;
+    result.LastStageTurnsCount = 1;
     return result;
 }
 
@@ -132,7 +136,8 @@ TMove &TMove::operator *= (const TMove &rgt) {
         permutation[i] = rgt.Permutation[Permutation[i]];
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = permutation[i];
-    TurnsCount += rgt.TurnsCount;
+    TotalTurnsCount += rgt.TotalTurnsCount;
+    LastStageTurnsCount += rgt.LastStageTurnsCount;
     return *this;
 }
 
@@ -155,7 +160,8 @@ TMove &TMove::operator /= (const TMove &rgt) {
         permutation[i] = inv[Permutation[i]];
     for (size_t i = 0; i < NUM_FIELDS; ++i)
         Permutation[i] = permutation[i];
-    TurnsCount += rgt.TurnsCount;
+    TotalTurnsCount += rgt.TotalTurnsCount;
+    LastStageTurnsCount += rgt.LastStageTurnsCount;
     return *this;
 }
 
@@ -199,8 +205,16 @@ void TMove::AddTurn(ETurn turn) {
     }
 }
 
-size_t TMove::GetTurnsCount() const {
-    return TurnsCount;
+size_t TMove::GetTotalTurnsCount() const {
+    return TotalTurnsCount;
+}
+
+size_t TMove::GetLastStageTurnsCount() const {
+    return LastStageTurnsCount;
+}
+
+void TMove::ResetLastStageTurnsCount() {
+    LastStageTurnsCount = 0;
 }
 
 bool TMove::operator != (const TMove &rgt) const {

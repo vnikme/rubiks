@@ -137,14 +137,17 @@ class TMove {
         TMove &operator /= (const TMove &rgt);
         TCube Act(const TCube &cube) const;
         std::vector<ETurn> GetTurns() const;
-        size_t GetTurnsCount() const;
+        size_t GetTotalTurnsCount() const;
+        size_t GetLastStageTurnsCount() const;
+        void ResetLastStageTurnsCount();
         bool operator != (const TMove &rgt) const;
         bool operator < (const TMove &rgt) const;
 
     private:
         std::vector<bool> Turns;
         unsigned char Permutation[NUM_FIELDS];
-        size_t TurnsCount = 0;
+        size_t TotalTurnsCount = 0;
+        size_t LastStageTurnsCount = 0;
 
         void AddTurn(ETurn turn);
 };

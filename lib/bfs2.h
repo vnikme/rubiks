@@ -15,7 +15,7 @@ void PlainBFS(TStage &stage, std::unordered_map<typename TStage::TCubeImageType,
     for (size_t i = 0; i < queue.size(); ++i) {
         TCube currentCube = queue[i];
         TMove currentMove = reachedPositions[stage.GetImage(currentCube)];
-        //std::cout << "Processing " << i << ", queue.size()=" << queue.size() << ", currentMove.GetTurnsCount()=" << currentMove.GetTurnsCount() << std::endl;
+        //std::cout << "Processing " << i << ", queue.size()=" << queue.size() << ", currentMove.GetTotalTurnsCount()=" << currentMove.GetTotalTurnsCount() << std::endl;
         for (const TMove &move : allowedMoves) {
             //std::cout << " Turning" << std::endl;
             cube = move.Act(currentCube);
@@ -24,7 +24,7 @@ void PlainBFS(TStage &stage, std::unordered_map<typename TStage::TCubeImageType,
                 continue;
             //std::cout << " Got new cube" << std::endl;
             reachedPositions[img] = currentMove * move;
-            if (currentMove.GetTurnsCount() + 1 < depth)
+            if (currentMove.GetTotalTurnsCount() + 1 < depth)
                 queue.push_back(cube);
         }
     }
@@ -47,13 +47,13 @@ bool UpdateReached(const TCube &cube, const TMove &move,
 }
 
 /*
-    BFS2 - two-way bfs
+    BFS2 - two-way bfs, backward moves precomputed
 */
 template<typename TCurrentStage, typename TNextStage>
 std::unordered_map<typename TNextStage::TCubeImageType, TMove>
     BFS2(const TCube &cube,
          const std::vector<TMove> &doneMoves,
-         size_t candidatesCount, size_t maxTurnsCount,
+         size_t candidatesCount, size_t maxTotalTurnsCount, size_t maxForwardStageTurnsCount, size_t maxStageTurnsCount,
          const TCurrentStage &currentStage, const TNextStage &nextStage) {
     using TCurrentCubeImage = typename TCurrentStage::TCubeImageType;
     using TNextCubeImage = typename TNextStage::TCubeImageType;
@@ -66,12 +66,13 @@ std::unordered_map<typename TNextStage::TCubeImageType, TMove>
     const auto &allowedMoves = currentStage.GetAllowedMoves();
     const auto &reachedBackward = currentStage.GetReachedPositions();
     for (size_t i = 0; i < doneMoves.size() || !queue.empty(); ) {
-        //std::cout << i << " " << result.size() << " " << (queue.empty() ? -1 : static_cast<int>(reached[currentStage.GetImage(queue.front())].GetTurnsCount())) << " " << queue.size() << " " << reached.size() << " " << reachedBackward.size() << std::endl;
+        //std::cout << i << " " << result.size() << " " << (queue.empty() ? -1 : static_cast<int>(reached[currentStage.GetImage(queue.front())].GetTotalTurnsCount())) << " " << queue.size() << " " << reached.size() << " " << reachedBackward.size() << std::endl;
         for (; i < doneMoves.size() && (queue.empty() ||
-               doneMoves[i].GetTurnsCount() <= reached[currentStage.GetImage(queue.front())].GetTurnsCount());
+               doneMoves[i].GetTotalTurnsCount() <= reached[currentStage.GetImage(queue.front())].GetTotalTurnsCount());
                ++i)
         {
             TMove m = doneMoves[i];
+            m.ResetLastStageTurnsCount();
             TCube c = m.Act(cube);
             auto img = currentStage.GetImage(c);
             auto it = reachedBackward.find(img);
@@ -80,12 +81,12 @@ std::unordered_map<typename TNextStage::TCubeImageType, TMove>
                 auto img = nextStage.GetImage(c);
                 auto it = result.find(img);
                 if (it != result.end()) {
-                    if (solution.GetTurnsCount() < it->second.GetTurnsCount())
+                    if (solution.GetTotalTurnsCount() < it->second.GetTotalTurnsCount())
                         it->second = solution;
                 } else {
                     result[img] = solution;
                 }
-                //std::cout << "i " << i << " " << result.size() << " " << m.GetTurnsCount() << " " << reached.size() << std::endl;
+                //std::cout << "i " << i << " " << result.size() << " " << m.GetTotalTurnsCount() << " " << reached.size() << std::endl;
                 if (result.size() >= candidatesCount)
                     return result;
             }
@@ -96,7 +97,7 @@ std::unordered_map<typename TNextStage::TCubeImageType, TMove>
                 result.clear();
                 return result;
             }
-            if (m.GetTurnsCount() + estimate < maxTurnsCount && reached.find(img) == reached.end()) {
+            if (m.GetTotalTurnsCount() + estimate < maxTotalTurnsCount && reached.find(img) == reached.end()) {
                 reached[img] = m;
                 queue.push_front(c);
             }
@@ -111,15 +112,15 @@ std::unordered_map<typename TNextStage::TCubeImageType, TMove>
                 auto img = currentStage.GetImage(c);
                 if (reached.find(img) == reached.end()) {
                     int estimate = currentStage.Estimate(c);
-                    //std::cout << "f estimate=" << estimate << std::endl;
                     if (estimate == -1) {
                         //std::cout << "est2=-1" << std::endl;
                         result.clear();
                         return result;
                     }
-                    if (m.GetTurnsCount() + estimate < maxTurnsCount) {
+                    if (m.GetTotalTurnsCount() + estimate < maxTotalTurnsCount && m.GetLastStageTurnsCount() < maxForwardStageTurnsCount && m.GetLastStageTurnsCount() + estimate < maxStageTurnsCount) {
                         reached[img] = m;
                         queue.push_back(c);
+                        //std::cout << "f estimate=" << estimate << "\t" << m.GetTotalTurnsCount() << "\t" << m.GetLastStageTurnsCount() << std::endl;
                     }
                     auto it = reachedBackward.find(img);
                     if (it != reachedBackward.end()) {
@@ -127,12 +128,14 @@ std::unordered_map<typename TNextStage::TCubeImageType, TMove>
                         auto img = nextStage.GetImage(c);
                         auto it = result.find(img);
                         if (it != result.end()) {
-                            if (solution.GetTurnsCount() < it->second.GetTurnsCount())
+                            if (solution.GetTotalTurnsCount() < it->second.GetTotalTurnsCount())
                                 it->second = solution;
                         } else {
                             result[img] = solution;
                         }
-                        //std::cout << "f " << i << " " << result.size() << " " << solution.GetTurnsCount() << "=" << m.GetTurnsCount() << "+" << solution.GetTurnsCount() - m.GetTurnsCount() << " " << reached.size() << std::endl;
+                        if (solution.GetTotalTurnsCount() + 1 < maxTotalTurnsCount)
+                            maxTotalTurnsCount = solution.GetTotalTurnsCount() + 1;
+                        //std::cout << "f " << i << " " << result.size() << " " << solution.GetTotalTurnsCount() << "=" << m.GetTotalTurnsCount() << "+" << solution.GetTotalTurnsCount() - m.GetTotalaTurnsCount() << " " << reached.size() << std::endl;
                         if (result.size() >= candidatesCount) {
                             std::cout << reached.size() << std::endl;
                             return result;
@@ -148,13 +151,13 @@ std::unordered_map<typename TNextStage::TCubeImageType, TMove>
 template<typename TCurrentStage, typename TNextStage>
 std::vector<TMove> Solve(const TCube &cube,
                          const std::vector<TMove> &doneMoves,
-                         size_t candidatesCount, size_t maxTurnsCount,
+                         size_t candidatesCount, size_t maxTotalTurnsCount, size_t maxForwardStageTurnsCount, size_t maxStageTurnsCount,
                          const TCurrentStage &currentStage, const TNextStage &nextStage) {
     std::vector<TMove> result;
-    for (auto it : BFS2(cube, doneMoves, candidatesCount, maxTurnsCount, currentStage, nextStage))
+    for (auto it : BFS2(cube, doneMoves, candidatesCount, maxTotalTurnsCount, maxForwardStageTurnsCount, maxStageTurnsCount, currentStage, nextStage))
         result.push_back(it.second);
     std::sort(result.begin(), result.end(), [] (const TMove &a, const TMove &b) {
-        return a.GetTurnsCount() < b.GetTurnsCount();
+        return a.GetTotalTurnsCount() < b.GetTotalTurnsCount();
     });
     return result;
 }

@@ -21,6 +21,7 @@ bool RunTest(const TCube &puzzle) {
 
 void RunTests() {
     std::vector<std::string> tests = {
+        "ooooooooyyyyyyyybbbbbbbbrrrrrrrrwwwwwwwwgggggggg",
         "wwwwwwww wwwwwwww wwwwwwww wwwwwwww wwwwwwww wwwwwwww",
         "wwwwwwww rrrrrrrr gggggggg yyyyyyyy oooooooo bbbbbbbb",
         "ooyorwyb gobbwyyg rrrboobb rywgwwby bgywywro owgrgggr",

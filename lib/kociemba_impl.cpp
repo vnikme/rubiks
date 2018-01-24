@@ -47,7 +47,7 @@ void TBaseEstimator::Init() {
     PlainBFS(*this, reached, 21);
     for (const auto &item : reached) {
         int index = (static_cast<int>(item.first.Data[1]) << 8) + static_cast<int>(item.first.Data[0]);
-        SetDistance(index, item.second.GetTurnsCount());
+        SetDistance(index, item.second.GetTotalTurnsCount());
     }
     std::cout << reached.size() << std::endl;
 }
