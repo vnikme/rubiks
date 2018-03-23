@@ -1,9 +1,11 @@
+    <div id="debug"></div>
     <div id="root"></div>
     <script type="text/babel">
+        {% include 'model.html' %}
         var Button = Reactstrap.Button;
 
         const styles = {
-            square: { width: "32pt", height: "32pt", border: "2pt solid black", textAlign: "center", fontWeight: "bold", resize: "none" },
+            square: { width: "32pt", height: "32pt", border: "2pt solid black", textAlign: "center", fontWeight: "bold", resize: "none", margin: "0", padding: "0", borderCollapse: "collapse" },
             transparentSquare: { backgroundColor: "white", border: "0" },
             emptySquare: { backgroundColor: "lightgray" },
             whiteSquare: { backgroundColor: "white" },
@@ -12,7 +14,10 @@
             yellowSquare: { backgroundColor: "yellow" },
             orangeSquare: { backgroundColor: "orange" },
             blueSquare: { backgroundColor: "blue" },
-            answer: { fontWeight: "bold", fontSize: "16pt" }
+            canvasSquare: { border: "2pt solid lime" },
+            canvas: { width: "100%", height: "100%", margin: "0", padding: "0", display: "block" },
+            answer: { fontWeight: "bold", fontSize: "16pt" },
+            grid: { borderCollapse: "collapse" }
         };
 
 
@@ -64,8 +69,34 @@
             }
         }
 
+        class CanvasSquare extends React.Component {
+            componentDidMount() {
+                var ctx = this.refs.canvas.getContext('2d');
+                this.props.contexts[this.props.index] = ctx;
+            }
+            render() {
+                return ( <td style={Object.assign({}, styles.square, styles.canvasSquare)}><canvas ref="canvas" style={styles.canvas} /></td> );
+            }
+        }
+
+
         class BaseField {
+            constructor() {
+            }
+
+            BuildReactComponent() {
+                return ( <EmptySquare /> );
+            }
+
+            MakeOnClickHandler() {
+                return function() {
+                }
+            }
+        }
+
+        class SimpleField extends BaseField {
             constructor(color, text) {
+                super();
                 this.Color = color;
                 this.Text = text;
             }
@@ -73,7 +104,7 @@
             BuildReactComponent() {
                 var handler = this.MakeOnClickHandler();
                 if (this.Color == "*")
-                    return ( <EmptySquare onClick={handler} text={this.Text}/> );
+                    return ( <EmptySquare onClick={handler} text={this.Text} /> );
                 if (this.Color == "w")
                     return ( <WhiteSquare onClick={handler} text={this.Text} /> );
                 if (this.Color == "r")
@@ -88,29 +119,9 @@
                     return ( <BlueSquare onClick={handler} text={this.Text} /> );
                 return ( <TransparentSquare text={this.Text} /> );
             }
-
-            MakeOnClickHandler() {
-                return function() {
-                }
-            }
         }
 
-        class Field extends BaseField {
-            constructor(color, index, clickHandler) {
-                super(color, "");
-                this.Index = index;
-                this.ClickHandler = clickHandler;
-            }
-
-            MakeOnClickHandler() {
-                var self = this;
-                return function() {
-                    self.ClickHandler(self.Index);
-                }
-            }
-        }
-
-        class CenterField extends BaseField {
+        class ClickableField extends SimpleField {
             constructor(color, text, clickHandler) {
                 super(color, text);
                 this.ClickHandler = clickHandler;
@@ -119,18 +130,298 @@
             MakeOnClickHandler() {
                 var self = this;
                 return function() {
-                    self.ClickHandler(self.Color);
+                    self.ClickHandler();
                 }
             }
         }
 
+        class CanvasField extends BaseField {
+            constructor(contexts, index) {
+                super();
+                this.Contexts = contexts;
+                this.Index = index;
+            }
+
+            BuildReactComponent() {
+                return ( <CanvasSquare contexts={this.Contexts} index={this.Index} /> );
+            }
+        }
+
+
+        function almostSame(a, b) {
+            if (a < 30 && b < 30)
+                return true;
+            if (Math.abs(a - b) < 20)
+                return true;
+            return (a >= 30 && b >= 30 && a / b < 1.2 && b / a < 1.2);
+        }
+
+        function rgbToColor(r, g, b) {
+            if (r > 70 && almostSame(g, b) && r > Math.max(g, b) * 2)
+                return "r";
+            if (r > 100 && g > b * 2 && 1.5 * g < r)
+                return "o";
+            if (r > 90 && r > b * 1.7 && almostSame(r, g))
+                return "y";
+            if (almostSame(r, g) && almostSame(g, b) && almostSame(r, b) && r > 70)
+                return "w";
+            if (g > 70 && g > Math.max(r, b) * 2)
+                return "g";
+            if (b > 70 && b > Math.max(r, g) + 30)
+                return "b";
+            return "*";
+        }
+
+        function colorVote(distr) {
+            var res = "*";
+            for (var key in distr) {
+                if (distr[key] > distr[res])
+                    res = key;
+            }
+            return res;
+        }
+
+/*        function recognizeColor(context) {
+            var idata = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            var data = idata.data;
+            var debug = document.getElementById("debug");
+            debug.innerHTML = extractFieldFeatures(data);
+            var distr = {"w": 0, "r": 0, "g": 0, "y": 0, "o": 0, "b": 0, "*": 0};
+            for (var k = 0; k < data.length; k += 4) {
+                var r = data[k], g = data[k + 1], b = data[k + 2];
+                //return [r, g, b, rgbToColor(r, g, b)];
+                distr[rgbToColor(r, g, b)] += 1;
+            }
+            return colorVote(distr);
+        }*/
+
+        function meanAndVariance(data) {
+            var s = 0.0, s2 = 0.0, n = data.length;
+            data.forEach ((x) => {
+                s += x;
+                s2 += x * x;
+            });
+            return [s / n, Math.sqrt(s2 / n - s / n * s / n + 1e-10)];
+        }
+
+        function extractFeaturesFromArray(data) {
+            data = data.sort((a, b) => (a - b));
+            return [data[100], data[200], data[300], data[400]].concat(meanAndVariance(data));
+        }
+
+        function extractFieldFeatures(data) {
+            var r = [], g = [], b = [];
+            for (var i = 0; i < 500; ++i) {
+                var k = Math.floor(Math.random() * data.length / 4) * 4;
+                r.push(data[k]);
+                g.push(data[k + 1]);
+                b.push(data[k + 2]);
+            }
+            var result = [];
+            result = result.concat(extractFeaturesFromArray(r));
+            result = result.concat(extractFeaturesFromArray(g));
+            result = result.concat(extractFeaturesFromArray(b));
+            return result;
+        }
+
+        function calculateModel(model, features) {
+            var result = 0.0;
+            for (var treeIndex = 0; treeIndex < model.Trees.length; ++treeIndex) {
+                var tree = model.Trees[treeIndex];
+                var answerIndex = 0;
+                for (var level = 0; level < tree.FeatureIndexes.length; ++level) {
+                    answerIndex *= 2;
+                    if (features[tree.FeatureIndexes[level]] >= tree.Thresholds[level])
+                        answerIndex += 1;
+                }
+                result += tree.Answers[answerIndex];
+            }
+            return result;
+        }
+
+        function oneHot(hit, classCount) {
+            var result = [];
+            for (var i = 0; i < classCount; ++i)
+                result.push(i == hit ? 1.0 : 0.0);
+            return result;
+        }
+
+        function calculateMulticlass(model, classCount, features) {
+            var result = -1, bestValue = -1e+38;
+            for (var i = 0; i < classCount; ++i) {
+                var value = calculateModel(model, oneHot(i, classCount).concat(features));
+                if (value > bestValue) {
+                    result = i;
+                    bestValue = value;
+                }
+            }
+            return result;
+        }
+
+        function recognizeColor(context) {
+            var idata = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            var data = idata.data;
+            //var debug = document.getElementById("debug");
+            var features = extractFieldFeatures(data);
+            //debug.inerHTML = features;
+            var colorIndex = calculateMulticlass(model, 6, features);
+            return ["w", "r", "g", "y", "o", "b"][colorIndex];
+        }
+
+
         class Game extends React.Component {
             constructor() {
                 super();
-                var fields = [];
+                var fields = [], recognized = [];
                 for (var i = 0; i < 48; ++i)
                     fields.push("*");
-                this.state = {Fields: fields, SelectedColor: "w", Answer: "", Updater: -1};
+                for (var i = 0; i < 9; ++i)
+                    recognized.push("");
+                this.state = {Fields: fields, Recognized: recognized, SelectedColor: "w", SelectedSurface: 0, Answer: "", Capture: false, CapturedData: null, SessionId: this.GenerateSessionId()};
+                this.LogEvent("start", {});
+                this.AnswerUpdater = -1;
+                this.CaptureUpdater = -1;
+                this.Contexts = [];
+                for (var i = 0; i < 9; ++i)
+                    this.Contexts.push(null);
+                this.Video = document.createElement("video");
+                this.Video.setAttribute("autoplay", "");
+                this.Video.setAttribute("muted", "");
+                this.Video.setAttribute("playsinline", "");
+                this.Video.width = 240;
+                this.Video.height = 240;
+                this.Canvas = document.createElement("canvas");
+                this.Canvas.width = 240;
+                this.Canvas.height = 240;
+                //this.Canvas.style.display = 'none';
+                //if (navigator.mediaDevices == null) {
+                //    alert(navigator.getUserMedia);
+                //    navigator.mediaDevices = {};
+                //    navigator.mediaDevices.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                //    alert(navigator.mediaDevices.getUserMedia);
+                //}
+            }
+
+            componentDidMount() {
+                this.Context = this.Canvas.getContext('2d');
+                //document.body.appendChild(this.Video);
+                //document.body.appendChild(this.Canvas);
+            }
+
+            GenerateSessionId() {
+                var d = new Date().getTime();
+                if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+                    d += performance.now(); //use high-precision timer if available
+                }
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = (d + Math.random() * 16) % 16 | 0;
+                    d = Math.floor(d / 16);
+                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                });
+            }
+
+            LogEvent(tp, event) {
+                event = Object.assign({}, event);
+                event["type"] = tp;
+                event["client_timestamp"] = Date.now();
+                event["session_id"] = this.state.SessionId;
+                event["fields"] = this.state.Fields;
+                event = btoa(JSON.stringify(event));
+                httpPostAsync("/log", event, (response) => {});
+            }
+
+            StartCapture() {
+                this.LogEvent("start_capture", {});
+                var self = this;
+                var debug = document.getElementById("debug");
+                var onSuccess = function (stream) {
+                    self.VideoStream = stream;
+                    self.Video.srcObject = stream;
+                    self.Video.play();
+                    //debug.innerHTML = "Video connected";
+                    self.CaptureUpdater = setInterval(() => self.CaptureImage(), 50);
+                    var state = self.state;
+                    state.Capture = true;
+                    self.setState(state);
+                }
+                var onError = function (error) {
+                    debug.innerHTML = "Error: " + error;
+                }
+                navigator.mediaDevices.getUserMedia({video: { facingMode: "environment", width: { min: 120, max: 2048 }, height: { min: 120, max: 2048 } }})
+                    .then(function (stream) {
+                        onSuccess(stream);
+                    }).catch(function (e) {
+                        navigator.mediaDevices.getUserMedia({video: { facingMode: "environment", width: 640, height: 480 }})
+                            .then(function (stream) {
+                                onSuccess(stream);
+                            }).catch(function (error) {
+                                onError(error);
+                            });
+                    });
+            }
+
+            StopCapture() {
+                this.LogEvent("stop_capture", {});
+                if (this.VideoStream) {
+                    var tracks = this.VideoStream.getTracks();
+                    tracks.forEach(function(track) {
+                        track.stop();
+                    });
+                }
+                this.Video.srcObject = null;
+                this.VideoStream = null;
+                clearInterval(this.CaptureUpdater);
+                this.CaptureUpdater = -1;
+                var state = this.state;
+                state.Capture = false;
+                this.setState(state);
+            }
+
+            ExtractImageData(mx, my, n) {
+                var w = this.Canvas.width, h = this.Canvas.height;
+                this.Context.drawImage(this.Video, mx, my, n, n, 0, 0, w, h);
+                var id = this.Context.getImageData(0, 0, w, h);
+                var data = [];
+                for (var i = 0; i < h; ++i) {
+                    var row = [];
+                    for (var j = 0; j < w; ++j) {
+                        var rgb = [];
+                        for (var k = 0; k < 4; ++k)
+                            rgb.push(id.data[i * w * 4 + j * 4 + k]);
+                        row.push(rgb);
+                    }
+                    data.push(row);
+                }
+                return data;
+            }
+
+            CaptureImage() {
+                var debug = document.getElementById("debug");
+                //debug.innerHTML = this.VideoStream;
+                if (!this.Video || !this.VideoStream || this.Video.readyState == 0)
+                    return;
+                //debug.innerHTML = "" + this.Video.readyState + " | " + this.Video.videoWidth + ", " + this.Video.videoHeight + " | " + this.Video.width + ", " + this.Video.height;
+                var state = this.state;
+                for (var i = 0; i < 9; ++i) {
+                    var ctx = this.Contexts[i];
+                    var canvas = ctx.canvas;
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                    var n = 0, mx = 0, my = 0, x = i % 3, y = Math.floor(i / 3);
+                    if (this.Video.videoWidth > this.Video.videoHeight) {
+                        n = this.Video.videoHeight;
+                        mx = (this.Video.videoWidth - this.Video.videoHeight) / 2;
+                    } else {
+                        n = this.Video.videoWidth;
+                        my = (this.Video.videoHeight - this.Video.videoWidth) / 2;
+                    }
+                    var step = n / 3;
+                    //debug.innerHTML = canvas.width + ", " + canvas.height;
+                    ctx.drawImage(this.Video, mx + step * x, my + step * y, step, step, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
+                    state.Recognized[i] = recognizeColor(ctx);
+                }
+                state.CapturedData = this.ExtractImageData(mx, my, n);
+                this.setState(state);
             }
 
             MakeBackendAnswerProcessor() {
@@ -140,21 +431,25 @@
                     var js = JSON.parse(response);
                     if (js.state == "pending") {
                         state.Answer = js.state;
+                        self.LogEvent("answer", { "state": "pending" });
                     } else if (js.state == "fail") {
+                        self.LogEvent("answer", { "state": "fail" });
                         state.Answer = js.state;
-                        if (state.Updater != -1) {
-                            clearInterval(state.Updater);
-                            state.Updater = -1;
+                        if (self.AnswerUpdater != -1) {
+                            clearInterval(self.AnswerUpdater);
+                            self.AnswerUpdater = -1;
                         }
                     } else if (js.state == "ok") {
                         var ans = JSON.parse(js.result);
+                        self.LogEvent("answer", { "state": "ok", "answer": ans });
                         state.Answer = "Answer size is " + ans.length + ":";
                         for (var i = 0; i < ans.length; ++i)
                             state.Answer += (" " + ans[i]);
-                        if (state.Updater != -1) {
-                            clearInterval(state.Updater);
-                            state.Updater = -1;
+                        if (self.AnswerUpdater != -1) {
+                            clearInterval(self.AnswerUpdater);
+                            self.AnswerUpdater = -1;
                         }
+                        state.SessionId = this.GenerateSessionId();
                     } else {
                         state.Answer = "";
                     }
@@ -173,54 +468,107 @@
                     }
                     cube += this.state.Fields[i];
                 }
+                this.LogEvent("solve", { "cube": cube });
                 //cube = "wywggoorobybboorgrrrybgowwbwryygywyowrbwgogrybgb";
                 var self = this;
                 var doSolve = function() {
                     httpGetAsync("/solve?cube=" + cube, self.MakeBackendAnswerProcessor());
                 };
-                var state = this.state;
-                if (state.Updater != -1)
-                    clearInterval(state.Updater);
-                state.Updater = setInterval(doSolve, 500);
-                this.setState(state);
+                if (this.AnswerUpdater != -1)
+                    clearInterval(this.AnswerUpdater);
+                this.AnswerUpdater = setInterval(doSolve, 500);
+            }
+
+            CreateSwitchColorHandler(index) {
+                var self = this;
+                return () => {
+                    var state = self.state;
+                    self.LogEvent("switch_color", { "selected_color": state.SelectedColor, "selected_surface": state.SelectedSurface, "index": index });
+                    state.Fields[index] = state.SelectedColor;
+                    state.Answer = "";
+                    if (this.AnswerUpdater != -1) {
+                        clearInterval(self.AnswerUpdater);
+                        self.AnswerUpdater = -1;
+                    }
+                    self.setState(state);
+                }
+            }
+
+            CreateSelectColorHandler(color, surface) {
+                var self = this;
+                return () => {
+                    var state = self.state;
+                    self.LogEvent("select_color", { "selected_color": color, "selected_surface": surface });
+                    state.SelectedColor = color;
+                    state.SelectedSurface = surface;
+                    self.setState(state);
+                }
+            }
+
+            CreateSwitchCaptureHandler() {
+                return () => {
+                    if (!this.state.Capture)
+                        this.StartCapture();
+                    else
+                        this.StopCapture();
+                }
+            }
+
+            CreateFixRecognizedHandler() {
+                return () => {
+                    var state = this.state;
+                    this.LogEvent("fix_recognized", { "recognized": state.Recognized, "selected_color": state.SelectedColor, "selected_surface": state.SelectedSurface, "data": state.CapturedData });
+                    for (var i = 0; i < 4; ++i) {
+                        state.Fields[state.SelectedSurface * 8 + i] = state.Recognized[i];
+                        state.Fields[state.SelectedSurface * 8 + i + 4] = state.Recognized[i + 5];
+                    }
+                    var doStop = false;
+                    if (++state.SelectedSurface >= 6) {
+                        state.SelectedSurface = 0;
+                        doStop = true;
+                    }
+                    this.setState(state);
+                    if (doStop)
+                        this.StopCapture();
+                }
             }
 
             render() {
+                var colors = [];
+                for (var i = 0; i < 48; ++i)
+                    colors.push(this.state.Fields[i]);
+                if (this.state.Capture) {
+                    for (var i = 0; i < 4; ++i) {
+                        colors[this.state.SelectedSurface * 8 + i] = this.state.Recognized[i];
+                        colors[this.state.SelectedSurface * 8 + i + 4] = this.state.Recognized[i + 5];
+                    }
+                }
                 var fields = [];
                 for (var i = 0; i < 12; ++i) {
                     var row = [];
                     for (var j = 0; j < 10; ++j) 
-                        row.push(new BaseField(" "));
+                        row.push(new SimpleField(" "));
                     fields.push(row);
-                }
-                var selectColorHandler = (color) => {
-                    var state = this.state;
-                    state.SelectedColor = color;
-                    this.setState(state);
-                }
-                var switchColorHandler = (index) => {
-                    var state = this.state;
-                    state.Fields[index] = state.SelectedColor;
-                    state.Answer = "";
-                    if (state.Updater != -1) {
-                        clearInterval(state.Updater);
-                        state.Updater = -1;
-                    }
-                    this.setState(state);
                 }
                 for (var i = 0; i < 4; ++i) {
                     var adds = [[6, 3], [3, 3], [6, 6], [0, 3], [9, 3], [6, 0]];
                     var centers = "wrgyob";
                     var surfaces = "FTRBDL";
                     for (var j = 0; j < adds.length; ++j) {
-                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new Field(this.state.Fields[i + j * 8], i + j * 8, switchColorHandler);
-                        fields[adds[j][0] + 1][adds[j][1] + 1] = new CenterField(centers[j], surfaces[j], selectColorHandler);
-                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new Field(this.state.Fields[i + 4 + j * 8], i + 4 + j * 8, switchColorHandler);
+                        fields[adds[j][0] + Math.floor(i / 3)][adds[j][1] + i % 3] = new ClickableField(colors[i + j * 8], "", this.CreateSwitchColorHandler(i + j * 8));
+                        fields[adds[j][0] + 1][adds[j][1] + 1] = new ClickableField(centers[j], surfaces[j], this.CreateSelectColorHandler(centers[j], j));
+                        fields[adds[j][0] + Math.floor((i + 5) / 3)][adds[j][1] + (i + 5) % 3] = new ClickableField(colors[i + 4 + j * 8], "", this.CreateSwitchColorHandler(i + 4 + j * 8));
                     }
                 }
-                var selected = new BaseField(this.state.SelectedColor, "");
-                //selected = selected.BuildReactComponent();
-                fields[1][1] = selected;
+                fields[4][8] = new ClickableField(this.state.SelectedColor, "", this.CreateFixRecognizedHandler());
+                fields[4][6] = new ClickableField("w", "📷", this.CreateSwitchCaptureHandler());
+                if (this.state.Capture) {
+                    for (var i = 0; i < 3; ++i) {
+                        for (var j = 0; j < 3; ++j) {
+                            fields[0 + i][6 + j] = new CanvasField(this.Contexts, 3 * i + j);
+                        }
+                    }
+                }
                 var rows = fields.map(function(row, i) {
                     var cells = row.map(function(cell, j) {
                         return cell.BuildReactComponent(j);
@@ -230,30 +578,32 @@
                 return (<div>
                             <div style={styles.answer}>{this.state.Answer}</div>
                             <div class="row">
-                                <div class="col-md-6 col-sm-6 col-xs-12" id="cube_div">
-                                    <table>{rows}</table>
+                                <div class="col-md-6 col-sm-6 col-xs-12">
+                                    <table style={styles.grid}>{rows}</table>
                                 </div>
-                                <div class="col-md-6 col-sm-6 col-xs-12" id="agenda_div">
+                                <div class="col-md-6 col-sm-6 col-xs-12">
                                     <ul>
                                         <li>Choose a color by clicking on one of the centers.</li>
                                         <li>Fill gray fields with colors.</li>
-                                        <li>Click 'Solve' button until you get a solution or a fail.</li>
+                                        <li>You can also use your camera to recognize colors (depends on browser support).</li>
+                                        <li>Click 'Solve' button, wait for solution about 10-20 seconds.</li>
                                         <li>Hold your cube white color to the front, red to the up, green to the right.</li>
                                         <li>Moves: F - front, B - back, U - up, D - down, L - left, R - right.</li>
                                         <li>Simple moves are clockwise, moves with apostrophe (') are counter-clockwise, moves with (2) are 180 degrees.</li>
+                                        <li>Feedback is greatly appreciated. You can write to the <a href="https://www.facebook.com/vnikme">author</a>.</li>
                                     </ul>
                                     <br />
                                 </div>
                             </div><br />
                             <div>
-                                <Button color="primary" onClick={() => this.Solve()}>Solve</Button><br /><br />
+                                <Button color="primary" onClick={() => this.Solve()}>Solve</Button>&nbsp;
+                                <Button color="primary" onClick={() => { window.location = '/debug' }}>Clear</Button><br /><br />
                             </div>
                         </div>);
             }
         }
 
         // ========================================
-
         ReactDOM.render(<Game />, document.getElementById("root"));
 
     </script>

@@ -561,7 +561,7 @@
                     }
                 }
                 fields[4][8] = new ClickableField(this.state.SelectedColor, "", this.CreateFixRecognizedHandler());
-                fields[4][6] = new ClickableField("w", "O", this.CreateSwitchCaptureHandler());
+                fields[4][6] = new ClickableField("w", "📷", this.CreateSwitchCaptureHandler());
                 if (this.state.Capture) {
                     for (var i = 0; i < 3; ++i) {
                         for (var j = 0; j < 3; ++j) {
@@ -585,10 +585,12 @@
                                     <ul>
                                         <li>Choose a color by clicking on one of the centers.</li>
                                         <li>Fill gray fields with colors.</li>
-                                        <li>Click 'Solve' button until you get a solution or a fail.</li>
+                                        <li>You can also use your camera to recognize colors (depends on browser support).</li>
+                                        <li>Click 'Solve' button, wait for solution about 10-20 seconds.</li>
                                         <li>Hold your cube white color to the front, red to the up, green to the right.</li>
                                         <li>Moves: F - front, B - back, U - up, D - down, L - left, R - right.</li>
                                         <li>Simple moves are clockwise, moves with apostrophe (') are counter-clockwise, moves with (2) are 180 degrees.</li>
+                                        <li>Feedback is greatly appreciated. You can write to the <a href="https://www.facebook.com/vnikme">author</a>.</li>
                                     </ul>
                                     <br />
                                 </div>

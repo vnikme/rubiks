@@ -1,1 +1,1 @@
-nohup ./rubiks_server --config rubiks.config > 1.out 2> 1.err &
+nohup ./do_run.sh < /dev/null > /dev/null 2> /dev/null &
