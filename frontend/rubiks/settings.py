@@ -25,7 +25,7 @@ SECRET_KEY = '8hth5)u@iz2rvoh#$=u+ps2am3io$%xz6=50k35e699!%1$8#$'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [u'rubiks.io', u'www.rubiks.io']
+ALLOWED_HOSTS = [u'rubiks.love', u'www.rubiks.love']
 
 
 # Application definition
